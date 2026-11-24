@@ -18,6 +18,15 @@ You need a T3 Code server running on the same machine (or a token for a remote o
 curl -fsSL https://raw.githubusercontent.com/callumalpass/t3tui/main/install.sh | sh
 ```
 
+Or with nix — this repo is a flake that builds the binary itself (`packages.<system>.t3tui`, also as `apps.t3tui`), plus the headless server CLI as `packages.<system>.t3`:
+
+```nix
+{
+  inputs.t3tui.url = "git+ssh://git@git.venomade.com/venomade/t3tui"; # or the GitHub mirror
+  # in home-manager: home.packages = [ inputs.t3tui.packages.${system}.t3tui inputs.t3tui.packages.${system}.t3 ];
+}
+```
+
 On Windows, in PowerShell:
 
 ```powershell
