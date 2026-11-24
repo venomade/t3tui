@@ -53,9 +53,6 @@ jobs:
         include:
           - { runner: ubuntu-24.04, target: linux-x64 }
           - { runner: ubuntu-24.04-arm, target: linux-arm64 }
-          # Static musl binaries: the smoke run proves they start on a glibc host too.
-          - { runner: ubuntu-24.04, target: linux-x64-musl }
-          - { runner: ubuntu-24.04-arm, target: linux-arm64-musl }
           - { runner: macos-15-intel, target: darwin-x64 }
           - { runner: macos-15, target: darwin-arm64 }
     runs-on: ${{ matrix.runner }}
@@ -77,6 +74,34 @@ jobs:
           grep -q "Waiting for threads" out.txt || { cat out.txt; echo "the dashboard didn't draw"; exit 1; }
           kill $!
 
+  # Musl binaries link against /lib/ld-musl-*.so.1 and libstdc++, so smoke-test them in Alpine.
+  smoke-musl:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-24.04, target: linux-x64-musl }
+          - { runner: ubuntu-24.04-arm, target: linux-arm64-musl }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+      - run: gunzip -c t3tui-${{ matrix.target }}.gz > t3tui && chmod +x t3tui
+      - name: Run version and dashboard in Alpine
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work -e T3TUI_SERVER=http://127.0.0.1:9 -e TERM=xterm-256color alpine:3.21 sh -eu -c '
+            apk add --no-cache libstdc++ util-linux-misc >/dev/null
+            ./t3tui version
+            (sleep 60 | script -qec ./t3tui out.txt >/dev/null) &
+            pid=$!
+            sleep 5
+            kill -0 "$pid" || { cat out.txt; echo "t3tui exited early"; exit 1; }
+            grep -q "Waiting for threads" out.txt || { cat out.txt; echo "the dashboard did not draw"; exit 1; }
+            kill "$pid" 2>/dev/null || true
+          '
+
   # Windows has no `script` to give the dashboard a terminal, so this stops at the binary starting.
   smoke-windows:
     needs: build
@@ -92,7 +117,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [smoke, smoke-windows]
+    needs: [smoke, smoke-musl, smoke-windows]
     runs-on: ubuntu-24.04
     permissions:
       contents: write

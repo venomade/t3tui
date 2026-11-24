@@ -2,7 +2,7 @@
 // library inside, so users need neither Bun nor a checkout. Usage:
 //   bun run compile [linux-x64 linux-arm64 linux-x64-musl linux-arm64-musl darwin-x64 darwin-arm64]
 // With no targets it builds for this machine. Binaries land in release/t3tui-<os>-<arch>.
-// The musl targets are fully static, so they run on any Linux (Alpine, containers, old glibc).
+// The musl targets link against musl's loader and libstdc++ (Alpine, musl containers).
 // Cross-compiling needs every platform's OpenTUI package: bun install --os='*' --cpu='*'
 import { $ } from "bun";
 import { existsSync } from "node:fs";

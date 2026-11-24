@@ -4,7 +4,7 @@ import type { OrchestrationV2ShellSnapshot, ThreadId } from "@t3tools/contracts"
 import { migrateConfigDir } from "./client/auth.ts";
 import { ensureLocalServer } from "./client/spawnServer.ts";
 import { T3Session } from "./client/session.ts";
-import { isCompiled, removeOldBinaries, upgrade, VERSION } from "./upgrade.ts";
+import { isCompiled, isMuslLinux, removeOldBinaries, upgrade, VERSION } from "./upgrade.ts";
 import { findThread, lastActivity, relativeTime, rowTime, shortId, statusLabel, threadRows } from "./model/threads.ts";
 
 const USAGE = `t3tui: a terminal client for T3 Code
@@ -165,6 +165,10 @@ async function runUi(attachNeedle?: string) {
     attachThreadId = thread.id;
   }
   // Load the renderer only for the UI so `list` stays fast and works without a TTY.
+  // OpenTUI selects its musl native package only when OPENTUI_LIBC=musl is set.
+  if (process.platform === "linux" && !process.env.OPENTUI_LIBC && isMuslLinux()) {
+    process.env.OPENTUI_LIBC = "musl";
+  }
   // Sequential on purpose: importing core and react concurrently trips a module init cycle.
   const { createCliRenderer } = await import("@opentui/core");
   const { createRoot } = await import("@opentui/react");
