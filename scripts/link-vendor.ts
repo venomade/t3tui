@@ -2,7 +2,7 @@
 // their package export maps resolve. They are TypeScript sources Bun runs as-is.
 // The packages are copied (not symlinked) so the small set of classic-tsc
 // false positives below can be patched in the copy; vendor/ itself stays pristine.
-import { cp, lstat, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { chmod, cp, lstat, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const root = join(import.meta.dir, "..");
@@ -30,7 +30,11 @@ const tscPatches: ReadonlyArray<{ file: string; from: string; to: string }> = [
 for (const { file, from, to } of tscPatches) {
   const path = join(scopeDir, file);
   const source = await readFile(path, "utf8");
-  if (source.includes(from)) await writeFile(path, source.replace(from, to));
+  // Copies keep the source's mode; a read-only store path (nix flake input) must be writable here.
+  if (source.includes(from)) {
+    await chmod(path, 0o644);
+    await writeFile(path, source.replace(from, to));
+  }
 }
 
 // Upstream resolves "@pierre/words/core" and "@pierre/words/wasm" through its web app's
