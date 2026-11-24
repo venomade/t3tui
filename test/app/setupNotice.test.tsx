@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { fakeSession, renderApp, v2ShellSnapshot } from "./harness.tsx";
+import { restoreEnv, saveEnv } from "../env.ts";
 
 let app: Awaited<ReturnType<typeof renderApp>> | null = null;
 const open = async (...args: Parameters<typeof renderApp>) => (app = await renderApp(...args));
@@ -17,14 +18,9 @@ const reconnecting = () => ({ type: "reconnecting", message: "No running T3 Code
 const freshSnapshot = { ...v2ShellSnapshot, projects: [], threads: [], archivedThreads: [] };
 
 describe("no T3 Code setup detected", () => {
-  const saved = { home: process.env.T3CODE_HOME, bin: process.env.T3TUI_T3_BIN, server: process.env.T3TUI_SERVER, token: process.env.T3TUI_TOKEN };
+  const saved = saveEnv();
 
-  afterEach(() => {
-    for (const [key, value] of Object.entries(saved)) {
-      if (value === undefined) delete process.env[key as "T3CODE_HOME"];
-      else process.env[key as "T3CODE_HOME"] = value;
-    }
-  });
+  afterEach(() => restoreEnv(saved));
 
   /** Pretends the machine has nothing of T3 Code: an empty t3 home and no t3 binary. */
   const pretendFreshMachine = () => {

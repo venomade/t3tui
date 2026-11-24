@@ -4,6 +4,7 @@ import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { detectT3CodeSetup, findT3Binary, NO_T3CODE_SETUP_MESSAGE, resolveLocalServer, t3Command } from "../src/client/auth.ts";
+import { restoreEnv, saveEnv } from "./env.ts";
 
 const appCopy = join(homedir(), ".t3", "bin", "t3");
 const installerCopy = join(homedir(), ".local", "bin", "t3.cmd");
@@ -47,12 +48,7 @@ describe("t3Command", () => {
 });
 
 describe("detectT3CodeSetup", () => {
-  const saved = {
-    bin: process.env.T3TUI_T3_BIN,
-    home: process.env.T3CODE_HOME,
-    server: process.env.T3TUI_SERVER,
-    token: process.env.T3TUI_TOKEN,
-  };
+  const saved = saveEnv();
 
   beforeEach(() => {
     delete process.env.T3TUI_T3_BIN;
@@ -62,12 +58,7 @@ describe("detectT3CodeSetup", () => {
     process.env.T3CODE_HOME = "/nonexistent-t3-home";
   });
 
-  afterEach(() => {
-    for (const [key, value] of Object.entries(saved)) {
-      if (value === undefined) delete process.env[key as "T3TUI_T3_BIN"];
-      else process.env[key as "T3TUI_T3_BIN"] = value;
-    }
-  });
+  afterEach(() => restoreEnv(saved));
 
   test("nothing detected: no env target, no t3 home files, no t3 binary", () => {
     expect(detectT3CodeSetup(() => false, () => null)).toEqual({ detected: false });
@@ -93,7 +84,7 @@ describe("detectT3CodeSetup", () => {
 });
 
 describe("resolveLocalServer without a setup", () => {
-  const saved = { home: process.env.T3CODE_HOME, bin: process.env.T3TUI_T3_BIN, server: process.env.T3TUI_SERVER, token: process.env.T3TUI_TOKEN };
+  const saved = saveEnv();
 
   beforeEach(() => {
     // An empty t3 home and a T3TUI_T3_BIN that does not exist: nothing of a T3 Code setup.
@@ -103,12 +94,7 @@ describe("resolveLocalServer without a setup", () => {
     delete process.env.T3TUI_TOKEN;
   });
 
-  afterEach(() => {
-    for (const [key, value] of Object.entries(saved)) {
-      if (value === undefined) delete process.env[key as "T3CODE_HOME"];
-      else process.env[key as "T3CODE_HOME"] = value;
-    }
-  });
+  afterEach(() => restoreEnv(saved));
 
   test("says t3tui is a companion app and T3 Code comes first", async () => {
     await expect(resolveLocalServer()).rejects.toThrow(/companion app to T3 Code/);
