@@ -97,12 +97,28 @@ export interface PickerItem {
   readonly hint?: string;
   /** Only listed once you type: a submenu's items, found from the top. */
   readonly searchOnly?: boolean;
+  /** The picker stays open after it runs, as a folder row in a path picker does. */
+  readonly keepOpen?: boolean;
   readonly run: () => void;
 }
 
 export interface Picker {
   readonly placeholder: string;
   readonly groups: readonly { readonly label: string; readonly items: readonly PickerItem[] }[];
+  /**
+   * Set for a path input with folder autocomplete instead of a fixed list (adding a project by
+   * path): the query is the path, the listed folders autocomplete it, and `onPath` gets the
+   * resolved path when the submit row is picked.
+   */
+  readonly pathMode?: {
+    /** The query to start from, e.g. "~/". */
+    readonly initialPath?: string;
+    /** The server's platform ("linux", "darwin", "win32"), so Windows paths only count there. */
+    readonly platform?: string;
+    /** What relative paths (./…, ../…) resolve against, as the web's current project folder. */
+    readonly cwd?: string | null;
+    readonly onPath: (path: string) => void;
+  };
 }
 
 /** A picker's groups filtered and ranked by the query, in the palette's shape. */

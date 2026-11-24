@@ -141,7 +141,7 @@ Submenus open as their own list, and typing finds their items from the top (`thr
 
 ## New threads
 
-`c` (or `New thread` in the palette) opens a draft in the current thread's project, with the server's defaults: its model and mode for new threads, and the project folder or a new worktree as the project settings say. In the draft, `p` picks the project, `m` the model and mode, and `w` switches between the project folder and a new worktree off the default branch. Send the first message to start the thread; T3 titles it. `esc` cancels.
+`c` (or `New thread` in the palette) opens a draft in the current thread's project, with the server's defaults: its model and mode for new threads, and the project folder or a new worktree as the project settings say. In the draft, `p` picks the project, `m` the model and mode, and `w` switches between the project folder and a new worktree off the default branch. The project picker's `New project from a folder path…` opens a path box instead: type a folder (`~` expands, relative paths resolve against the current project), pick a suggested folder or `tab`-complete the path, and `enter` opens that folder as the draft's project — creating it when it doesn't exist yet — or selects the project when the folder already has one. Send the first message to start the thread; T3 titles it. `esc` cancels.
 
 ## Attachments
 

@@ -52,9 +52,10 @@ export function fakeSession(
 ) {
   const calls: Call[] = [];
   const threadListeners = new Set<(value: unknown) => void>();
+  const shellListeners = new Set<(value: unknown) => void>();
   // The default thread has a finished run, as upstream's menu tests assume: "Mark unread"
   // only shows once the latest run completed.
-  const snapshot =
+  let snapshot =
     state.snapshot ??
     ({ ...v2ShellSnapshot, threads: v2ShellSnapshot.threads.map((thread) => ({ ...thread, latestRunId: RunId.make("run-v2") })) } as OrchestrationV2ShellSnapshot);
   const projection = state.projection ?? v2Projection;
@@ -62,9 +63,14 @@ export function fakeSession(
     listener(value);
     return () => {};
   };
+  const shellState = () => ({ status: state.status ?? { type: "live" }, snapshot, serverUrl: "ws://test" });
   const known: Record<string, unknown> = {
-    getShell: () => ({ status: state.status ?? { type: "live" }, snapshot, serverUrl: "ws://test" }),
-    onShell: () => () => {},
+    getShell: shellState,
+    onShell: (listener: (value: unknown) => void) => {
+      shellListeners.add(listener);
+      listener(shellState());
+      return () => shellListeners.delete(listener);
+    },
     watchThread: (_id: ThreadId, listener: (value: unknown) => void) => {
       threadListeners.add(listener);
       listener({ status: "live", projection, history: { cursor: null, hasMore: false, loading: false } });
@@ -100,7 +106,12 @@ export function fakeSession(
   const updateThread = (next: OrchestrationV2ThreadProjection) => {
     for (const listener of threadListeners) listener({ status: "live", projection: next, history: { cursor: null, hasMore: false, loading: false } });
   };
-  return { session, calls, updateThread };
+  /** Sends shell watchers a new snapshot, as the server does when a project is added. */
+  const updateShell = (next: OrchestrationV2ShellSnapshot) => {
+    snapshot = next;
+    for (const listener of shellListeners) listener(shellState());
+  };
+  return { session, calls, updateThread, updateShell };
 }
 
 /** Renders the whole app against a fake session, with helpers to drive it by key and mouse. */

@@ -29,7 +29,9 @@ import {
   type GitStackedAction,
   type AttachmentCreateUploadUrlInput,
   type ChatAttachment,
-  type ProjectId,
+  ProjectId,
+  type FilesystemBrowseResult,
+  type Project,
   type ProviderConsumeResetCreditInput,
   type ProviderConsumeResetCreditResult,
   type ReviewDiffPreviewSource,
@@ -458,6 +460,20 @@ export class T3Session {
     return Effect.runPromise(this.requireConnection().rpc[WS_METHODS.projectsCreateFromThread]({ threadId }));
   }
 
+  /** Adds a project at `workspaceRoot`, creating the folder when missing, as the web's "Add project" does. */
+  createProject(input: { readonly title: string; readonly workspaceRoot: string; readonly createWorkspaceRootIfMissing?: boolean }): Promise<Project> {
+    return Effect.runPromise(
+      this.requireConnection().rpc[WS_METHODS.projectsMutate]({
+        type: "project.create",
+        commandId: newCommandId(),
+        projectId: ProjectId.make(crypto.randomUUID()),
+        title: input.title,
+        workspaceRoot: input.workspaceRoot,
+        ...(input.createWorkspaceRootIfMissing === undefined ? {} : { createWorkspaceRootIfMissing: input.createWorkspaceRootIfMissing }),
+      }),
+    );
+  }
+
   /** Runs a commit / push / PR action, reporting progress as it goes. Rejects with the server's message on failure. */
   async runGitAction(request: GitActionRequest, onProgress: Listener<GitActionProgressEvent>): Promise<GitRunStackedActionResult> {
     const rpc = this.requireConnection().rpc;
@@ -805,6 +821,11 @@ export class T3Session {
 
   reorderThread(threadId: ThreadId, section: "pinned" | "active", orderKey: string): Promise<void> {
     return this.dispatch({ type: section === "pinned" ? "thread.pin.reorder" : "thread.active.reorder", commandId: newCommandId(), threadId, orderKey });
+  }
+
+  /** Folders under `partialPath` (absolute or ~/…; relative to `cwd`), as the web's path autocomplete lists them. */
+  browseFilesystem(partialPath: string, cwd?: string): Promise<FilesystemBrowseResult> {
+    return Effect.runPromise(this.requireConnection().rpc[WS_METHODS.filesystemBrowse]({ partialPath, ...(cwd === undefined ? {} : { cwd }) }));
   }
 
   /** Files and folders under `cwd` matching `query`, as the composer's @ menu searches them. */

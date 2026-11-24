@@ -36,6 +36,7 @@ import { useDetails } from "./useDetails.ts";
 import { useFiles } from "./useFiles.ts";
 import { useDraft } from "./useDraft.ts";
 import { useModelPicker } from "./useModelPicker.ts";
+import { usePathBrowse } from "./usePathBrowse.ts";
 import { useQuestion } from "./useQuestion.ts";
 import { useThreadMenu } from "./useThreadMenu.ts";
 import { editorCommand, editorIsNvim, nvimOpen, nvimSocket, scratchFile } from "./editor.ts";
@@ -501,23 +502,37 @@ export function App(props: { readonly session: T3Session; readonly config: T3tui
     focus: (focused) => setMode(focused ? "details" : "nav"),
   });
 
-  // Pickers: the palette's overlay over a fixed list.
+  // Pickers: the palette's overlay over a fixed list, or over a path with folder autocomplete.
   const openPicker = (next: Picker) => {
     if (mode !== "picker" && mode !== "palette" && mode !== "confirm") returnMode.current = mode === "filter" || mode === "details" ? "nav" : mode;
     setPicker(next);
-    setPickerQuery("");
+    setPickerQuery(next.pathMode?.initialPath ?? "");
     setPickerIndex(0);
     setMode("picker");
   };
-  const pickerView = useMemo(() => (picker ? pickerGroups(picker, pickerQuery) : []), [picker, pickerQuery]);
-  const pickerItems = useMemo(() => (picker ? picker.groups.flatMap((group) => group.items) : []), [picker]);
+  const listPickerView = useMemo(() => (picker ? pickerGroups(picker, pickerQuery) : []), [picker, pickerQuery]);
+  const listPickerItems = useMemo(() => (picker ? picker.groups.flatMap((group) => group.items) : []), [picker]);
+  const pathBrowse = usePathBrowse({
+    session,
+    picker,
+    query: pickerQuery,
+    setQuery: (query) => {
+      setPickerQuery(query);
+      setPickerIndex(0);
+    },
+  });
+  const pickerView = picker?.pathMode ? pathBrowse.view : listPickerView;
+  const pickerItems = picker?.pathMode ? pathBrowse.items : listPickerItems;
   const pickerEntries = paletteEntries(pickerView);
   const pickItem = (index: number) => {
     const entry = pickerEntries[index];
     if (entry?.kind !== "command") return;
     const item = pickerItems.find((candidate) => candidate.id === entry.command.id);
-    setPicker(null);
-    setMode(returnMode.current);
+    // A keepOpen row (a folder in a path picker) only changes the query; the picker stays.
+    if (!item?.keepOpen) {
+      setPicker(null);
+      setMode(returnMode.current);
+    }
     item?.run();
   };
 
@@ -1097,7 +1112,17 @@ export function App(props: { readonly session: T3Session; readonly config: T3tui
       case "find":
         return { layers: [findKeys], hints: findKeys };
       case "picker": {
-        const pickerKeys = [...listMove((delta) => setPickerIndex((index) => Math.max(0, Math.min(pickerEntries.length - 1, index + delta)))), { keys: [], label: "enter", hint: "choose" }, { keys: ["esc"], run: closePicker, hint: "close" }, quitKey];
+        // In a path picker, Tab completes the path like a shell; Enter uses the typed path.
+        const pathKeys = picker?.pathMode
+          ? [{ keys: ["tab"], run: () => {
+              const completion = pathBrowse.tabCompletion();
+              if (completion !== null) {
+                setPickerQuery(completion);
+                setPickerIndex(0);
+              }
+            }, hint: "complete path" } satisfies Binding]
+          : [];
+        const pickerKeys = [...pathKeys, ...listMove((delta) => setPickerIndex((index) => Math.max(0, Math.min(pickerEntries.length - 1, index + delta)))), { keys: [], label: "enter", hint: picker?.pathMode ? "open or create" : "choose" }, { keys: ["esc"], run: closePicker, hint: "close" }, quitKey];
         return { layers: [pickerKeys], hints: pickerKeys };
       }
       case "palette": {
@@ -1739,6 +1764,7 @@ export function App(props: { readonly session: T3Session; readonly config: T3tui
           {...paletteArea}
           query={pickerQuery}
           placeholder={picker.placeholder}
+          status={picker.pathMode ? pathBrowse.status : undefined}
           groups={pickerView}
           selected={Math.min(pickerIndex, Math.max(0, pickerEntries.length - 1))}
           onQuery={(value) => {

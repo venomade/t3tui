@@ -1,4 +1,5 @@
 import { deriveThreadTitleSeed } from "@t3tools/client-runtime/operations";
+import { findProjectByPath, inferProjectTitleFromPath, isExplicitRelativeProjectPath, isUnsupportedWindowsProjectPath, resolveProjectPathForDispatch } from "@t3tools/client-runtime/state/projects";
 import type { ChatAttachment, ModelSelection, OrchestrationMessageContext, OrchestrationProjectShell, OrchestrationV2ShellSnapshot, OrchestrationV2ThreadShell, ServerConfig, ThreadId } from "@t3tools/contracts";
 import { useState } from "react";
 
@@ -54,6 +55,78 @@ export function useDraft(deps: {
     if (draft) setDraft({ ...draft, ...patch });
   };
 
+  /** Resolves a typed path against the current project folder, as the web resolves it against the active project. */
+  const resolvePath = (rawPath: string): string | null => {
+    const trimmed = rawPath.trim();
+    const platform = config?.environment.platform.os ?? "";
+    const baseCwd = project?.workspaceRoot ?? projects[0]?.workspaceRoot ?? null;
+    if (isUnsupportedWindowsProjectPath(trimmed, platform)) {
+      say("Windows-style paths only work on a Windows server.", true);
+      return null;
+    }
+    if (isExplicitRelativeProjectPath(trimmed) && !baseCwd) {
+      say("A relative path needs a current project folder.", true);
+      return null;
+    }
+    return resolveProjectPathForDispatch(trimmed, baseCwd);
+  };
+
+  /** The project the shell snapshot reports for `projectId`, waiting briefly for the stream to deliver it. */
+  const waitForProject = (projectId: string): Promise<OrchestrationProjectShell | null> =>
+    new Promise((resolve) => {
+      const found = () => session.getShell().snapshot?.projects.find((candidate) => candidate.id === projectId) ?? null;
+      const immediate = found();
+      if (immediate) return resolve(immediate);
+      const timer = setTimeout(() => {
+        off();
+        resolve(found());
+      }, 5000);
+      const off = session.onShell(() => {
+        const match = found();
+        if (match) {
+          clearTimeout(timer);
+          off();
+          resolve(match);
+        }
+      });
+    });
+
+  /** Opens `path` as the draft's project, creating the folder and the project when it doesn't exist yet. */
+  const addProjectFromPath = (rawPath: string) => {
+    if (!draft) return;
+    const workspaceRoot = resolvePath(rawPath);
+    if (!workspaceRoot) return;
+    const existing = findProjectByPath(projects, workspaceRoot);
+    if (existing) {
+      setDraft(draftDefaults({ config, project: existing, currentModel: draft.modelSelection, projectHasThreads: hasThreads(existing.id) }));
+      return say(`“${existing.title}” is already a project; selected it.`);
+    }
+    say("Adding project…");
+    session
+      .createProject({ title: inferProjectTitleFromPath(workspaceRoot), workspaceRoot, createWorkspaceRootIfMissing: true })
+      .then(async (created) => {
+        const shell = (await waitForProject(created.id)) ?? created;
+        setDraft((current) => (current ? draftDefaults({ config, project: shell, currentModel: current.modelSelection, projectHasThreads: hasThreads(shell.id) }) : current));
+        say(`Added project “${shell.title}”.`);
+      })
+      .catch((error) => say(`Could not add the project: ${error instanceof Error ? error.message : String(error)}`, true));
+  };
+
+  /** A path with folder autocomplete; submitting it opens the folder as a project, creating it when missing. */
+  const openProjectPathPicker = () => {
+    if (!draft) return;
+    deps.openPicker({
+      placeholder: "Project folder path (e.g. ~/projects/my-app)",
+      groups: [],
+      pathMode: {
+        initialPath: "~/",
+        platform: config?.environment.platform.os ?? "",
+        cwd: project?.workspaceRoot ?? projects[0]?.workspaceRoot ?? null,
+        onPath: addProjectFromPath,
+      },
+    });
+  };
+
   const openProjectPicker = () => {
     if (!draft) return;
     deps.openPicker({
@@ -67,6 +140,10 @@ export function useDraft(deps: {
             hint: candidate.id === draft.projectId ? "current" : tildify(candidate.workspaceRoot),
             run: () => setDraft(draftDefaults({ config, project: candidate, currentModel: draft.modelSelection, projectHasThreads: hasThreads(candidate.id) })),
           })),
+        },
+        {
+          label: "New",
+          items: [{ id: "project:new-from-path", title: "New project from a folder path…", hint: "type a path", run: openProjectPathPicker }],
         },
       ],
     });
