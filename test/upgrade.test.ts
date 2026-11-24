@@ -4,15 +4,24 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } fro
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { assetName, checksumFor, isCompiled, isEmbeddedPath, removeOldBinaries, replaceBinary } from "../src/upgrade.ts";
+import { assetName, checksumFor, isCompiled, isEmbeddedPath, isMuslLinux, removeOldBinaries, replaceBinary } from "../src/upgrade.ts";
 
 test("names the release asset for a platform", () => {
   expect(assetName("darwin", "arm64")).toBe("t3tui-darwin-arm64");
   expect(assetName("win32", "x64")).toBe("t3tui-windows-x64.exe");
   expect(assetName("linux", "x64", false)).toBe("t3tui-linux-x64");
-  // musl systems (Alpine, containers) get the static asset.
+  // musl systems (Alpine, containers) get the musl asset.
   expect(assetName("linux", "x64", true)).toBe("t3tui-linux-x64-musl");
   expect(assetName("linux", "arm64", true)).toBe("t3tui-linux-arm64-musl");
+});
+
+test("detects musl by the loader's triplet name, not Node's arch name", () => {
+  // process.arch is "x64"/"arm64", but the loader is ld-musl-x86_64.so.1 / ld-musl-aarch64.so.1.
+  expect(isMuslLinux(() => ["ld-musl-x86_64.so.1", "libc.musl-x86_64.so.1"])).toBe(true);
+  expect(isMuslLinux(() => ["ld-musl-aarch64.so.1"])).toBe(true);
+  expect(isMuslLinux(() => ["ld-linux-x86-64.so.2", "libc.so.6"])).toBe(false);
+  expect(isMuslLinux(() => [])).toBe(false);
+  expect(isMuslLinux(() => { throw new Error("no /lib"); })).toBe(false);
 });
 
 test("knows Bun's embedded filesystem on every platform", () => {

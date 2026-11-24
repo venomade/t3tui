@@ -1,6 +1,6 @@
 // `t3tui upgrade`: replaces a released binary with the latest release's.
 import { chmod, rename, rm } from "node:fs/promises";
-import { existsSync, readdirSync, realpathSync, rmSync } from "node:fs";
+import { readdirSync, realpathSync, rmSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
 import { version } from "../package.json" with { type: "json" };
@@ -19,10 +19,14 @@ export function isCompiled(): boolean {
   return isEmbeddedPath(import.meta.path);
 }
 
-/** Whether this Linux is musl (Alpine and friends), which needs the static musl asset. */
-function isMuslLinux(): boolean {
+/**
+ * Whether this Linux is musl (Alpine and friends), which needs the musl asset. The musl loader
+ * is `/lib/ld-musl-<triplet>.so.1` — `x86_64`, `aarch64`, … — not Node's arch names (`x64`, `arm64`),
+ * so match any `ld-musl-*.so.1` rather than interpolating `process.arch`.
+ */
+export function isMuslLinux(list: (dir: string) => string[] = (dir) => readdirSync(dir)): boolean {
   try {
-    return existsSync(`/lib/ld-musl-${process.arch}.so.1`);
+    return list("/lib").some((name) => /^ld-musl-.+\.so\.1$/.test(name));
   } catch {
     return false;
   }
