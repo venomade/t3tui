@@ -80,6 +80,8 @@ See [docs/reference.md](docs/reference.md) for every key, the message box, diffs
 
 t3tui finds the local T3 Code server from `~/.t3/userdata/server-runtime.json` (override with `T3TUI_SERVER`). On first run it issues itself a session with `t3 auth session issue --label t3tui`, scoped to what it needs, and stores it in `~/.config/t3tui/credentials.json`. Revoke it any time with `t3 auth session revoke`. For a remote server, pass a token in `T3TUI_TOKEN`.
 
+No desktop app needed: the flake in this repo also packages the headless server CLI, so `nix develop --command t3 serve` (or `nix build .#t3` and run `result/bin/t3 serve`) starts T3 Code with no browser — it writes the same `server-runtime.json` that t3tui reads.
+
 The scopes, the protocol and how to update for a newer T3 Code are in [docs/development.md](docs/development.md).
 
 ## Not yet supported
