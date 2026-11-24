@@ -14,6 +14,27 @@ Built with Bun and [OpenTUI](https://github.com/anomalyco/opentui) (React). t3tu
 
 t3tui is a companion to [T3 Code](https://github.com/pingdotgg/t3code), not a standalone app: install and set up T3 Code first — from [github.com/pingdotgg/t3code](https://github.com/pingdotgg/t3code) — and make sure its server is running on the same machine (or have a token for a remote one; see [How it connects](#how-it-connects)). If t3tui finds no T3 Code setup when it starts, it says so and points you there. Attach your agent ACPs (providers) in the T3 Code app.
 
+Download a ready-made binary from the [latest release](https://github.com/venomade/t3tui/releases/latest) — one gzipped file per system, with a `SHA256SUMS` file to check them against:
+
+| Asset | System |
+| --- | --- |
+| `t3tui-linux-x64.gz` | Linux x86_64, glibc (Ubuntu, Debian, Arch, Fedora, …) |
+| `t3tui-linux-x64-musl.gz` | Linux x86_64, musl (Alpine, containers; needs `libstdc++` there) |
+| `t3tui-linux-arm64.gz` / `t3tui-linux-arm64-musl.gz` | Linux aarch64, glibc / musl |
+| `t3tui-darwin-x64.gz` / `t3tui-darwin-arm64.gz` | macOS, Intel / Apple Silicon |
+| `t3tui-windows-x64.exe.gz` | Windows x64 |
+
+```sh
+base=https://github.com/venomade/t3tui/releases/latest/download
+curl -fsSLO "$base/SHA256SUMS" -O "$base/t3tui-linux-x64.gz"
+grep t3tui-linux-x64.gz SHA256SUMS | sha256sum -c -   # verify before running
+gunzip t3tui-linux-x64.gz && chmod +x t3tui-linux-x64 && mv t3tui-linux-x64 ~/.local/bin/t3tui
+```
+
+On Windows, download `t3tui-windows-x64.exe.gz`, decompress it (git bash's `gunzip`, or 7-Zip), and put `t3tui.exe` somewhere on your `PATH`.
+
+The binary is self-contained — no Bun, no checkout, nothing else to install. `t3tui upgrade` replaces it with the latest release (verified against `SHA256SUMS`), and `t3tui version` says which you have. Each release notes the T3 Code version it was built against.
+
 With nix — this repo is a flake that builds the binary itself (`packages.<system>.t3tui`, also as `apps.t3tui`):
 
 ```nix
@@ -23,11 +44,9 @@ With nix — this repo is a flake that builds the binary itself (`packages.<syst
 }
 ```
 
-The binary needs nothing else installed, not even Bun. `t3tui upgrade` replaces it with the latest release, and `t3tui version` says which you have. Each release notes the T3 Code version it was built against.
-
 ### Build from source
 
-On other systems (such as Linux with musl), or to run unreleased changes, you need [Bun](https://bun.sh) 1.3.14 or later:
+On other systems, or to run unreleased changes, you need [Bun](https://bun.sh) 1.3.14 or later:
 
 ```sh
 git clone --recurse-submodules https://github.com/callumalpass/t3tui.git && cd t3tui

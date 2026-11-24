@@ -33,7 +33,7 @@ jobs:
       - run: bun run typecheck
       - run: bun run lint
       - run: bun test
-      - run: bun run compile linux-x64 linux-arm64 darwin-x64 darwin-arm64 windows-x64
+      - run: bun run compile linux-x64 linux-arm64 linux-x64-musl linux-arm64-musl darwin-x64 darwin-arm64 windows-x64
       - name: Compress and checksum
         working-directory: release
         run: |
@@ -53,6 +53,9 @@ jobs:
         include:
           - { runner: ubuntu-24.04, target: linux-x64 }
           - { runner: ubuntu-24.04-arm, target: linux-arm64 }
+          # Static musl binaries: the smoke run proves they start on a glibc host too.
+          - { runner: ubuntu-24.04, target: linux-x64-musl }
+          - { runner: ubuntu-24.04-arm, target: linux-arm64-musl }
           - { runner: macos-15-intel, target: darwin-x64 }
           - { runner: macos-15, target: darwin-arm64 }
     runs-on: ${{ matrix.runner }}

@@ -1,14 +1,15 @@
 // Compiles t3tui into one executable per platform, with Bun's runtime and OpenTUI's native
 // library inside, so users need neither Bun nor a checkout. Usage:
-//   bun run compile [linux-x64 linux-arm64 darwin-x64 darwin-arm64]
+//   bun run compile [linux-x64 linux-arm64 linux-x64-musl linux-arm64-musl darwin-x64 darwin-arm64]
 // With no targets it builds for this machine. Binaries land in release/t3tui-<os>-<arch>.
+// The musl targets are fully static, so they run on any Linux (Alpine, containers, old glibc).
 // Cross-compiling needs every platform's OpenTUI package: bun install --os='*' --cpu='*'
 import { $ } from "bun";
 import { existsSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 
-const TARGETS = ["linux-x64", "linux-arm64", "darwin-x64", "darwin-arm64", "windows-x64"];
+const TARGETS = ["linux-x64", "linux-arm64", "linux-x64-musl", "linux-arm64-musl", "darwin-x64", "darwin-arm64", "windows-x64"];
 // Every native package OpenTUI might import. Each binary keeps only its own platform's.
 const NATIVE = ["linux-x64", "linux-arm64", "darwin-x64", "darwin-arm64", "linux-x64-musl", "linux-arm64-musl", "win32-x64", "win32-arm64"].map((t) => `@opentui/core-${t}`);
 /** Bun names Windows "windows"; npm and OpenTUI's packages call it "win32". */

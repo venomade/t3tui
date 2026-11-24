@@ -9,6 +9,10 @@ import { assetName, checksumFor, isCompiled, isEmbeddedPath, removeOldBinaries, 
 test("names the release asset for a platform", () => {
   expect(assetName("darwin", "arm64")).toBe("t3tui-darwin-arm64");
   expect(assetName("win32", "x64")).toBe("t3tui-windows-x64.exe");
+  expect(assetName("linux", "x64", false)).toBe("t3tui-linux-x64");
+  // musl systems (Alpine, containers) get the static asset.
+  expect(assetName("linux", "x64", true)).toBe("t3tui-linux-x64-musl");
+  expect(assetName("linux", "arm64", true)).toBe("t3tui-linux-arm64-musl");
 });
 
 test("knows Bun's embedded filesystem on every platform", () => {

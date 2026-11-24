@@ -1,12 +1,13 @@
 // `t3tui upgrade`: replaces a released binary with the latest release's.
 import { chmod, rename, rm } from "node:fs/promises";
-import { readdirSync, realpathSync, rmSync } from "node:fs";
+import { existsSync, readdirSync, realpathSync, rmSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
 import { version } from "../package.json" with { type: "json" };
 
 export const VERSION = version;
-const REPO = "callumalpass/t3tui";
+// GitHub's /releases/latest is the newest non-prerelease, non-draft release.
+const REPO = "venomade/t3tui";
 const LATEST_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
 const DOWNLOAD_URL = `https://github.com/${REPO}/releases/download`;
 
@@ -18,9 +19,19 @@ export function isCompiled(): boolean {
   return isEmbeddedPath(import.meta.path);
 }
 
-/** The release asset for this machine, e.g. t3tui-linux-x64 or t3tui-windows-x64.exe. */
-export function assetName(platform: string = process.platform, arch: string = process.arch): string {
-  return platform === "win32" ? `t3tui-windows-${arch}.exe` : `t3tui-${platform}-${arch}`;
+/** Whether this Linux is musl (Alpine and friends), which needs the static musl asset. */
+function isMuslLinux(): boolean {
+  try {
+    return existsSync(`/lib/ld-musl-${process.arch}.so.1`);
+  } catch {
+    return false;
+  }
+}
+
+/** The release asset for this machine, e.g. t3tui-linux-x64-musl or t3tui-windows-x64.exe. */
+export function assetName(platform: string = process.platform, arch: string = process.arch, musl: boolean = platform === "linux" && isMuslLinux()): string {
+  if (platform === "win32") return `t3tui-windows-${arch}.exe`;
+  return musl ? `t3tui-${platform}-${arch}-musl` : `t3tui-${platform}-${arch}`;
 }
 
 /** Finds an asset's hash in a sha256sum listing. */
