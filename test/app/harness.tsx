@@ -143,8 +143,12 @@ export async function renderApp(
     try {
       await rig.renderOnce();
       let last = rig.captureCharFrame();
-      for (let tries = 0; tries < 50; tries++) {
-        await new Promise((resolve) => setTimeout(resolve, 15));
+      // Wait for two identical frames, but with a time budget rather than a try count:
+      // on a small CI runner a frame can take far longer than 15ms, and a fixed count
+      // can give up while an update is still in flight.
+      const deadline = Date.now() + 5_000;
+      while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
         await rig.renderOnce();
         const next = rig.captureCharFrame();
         if (next === last) return;
@@ -154,7 +158,7 @@ export async function renderApp(
       return;
     }
   };
-  await settle(150);
+  await settle(300);
   const named: Record<string, KeyInput> = { escape: "ESCAPE", return: "RETURN", tab: "TAB", up: "ARROW_UP", down: "ARROW_DOWN", left: "ARROW_LEFT", right: "ARROW_RIGHT", backspace: "BACKSPACE" };
   /** Presses a key by its OpenTUI name: "j", "Y", "escape", "return". */
   const press = async (key: string, modifiers?: Parameters<typeof keys.pressKey>[1]) => {
