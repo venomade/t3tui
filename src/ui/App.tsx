@@ -9,6 +9,7 @@ import { parseFileUrlHref, resolvePathLinkTarget, splitFilePathPosition } from "
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { AttachmentCreateUploadUrlInput, ChatAttachment, OrchestrationMessageContext } from "@t3tools/contracts";
+import { detectT3CodeSetup } from "../client/auth.ts";
 import type { ServerConfigState, ShellState, T3Session, ThreadState } from "../client/session.ts";
 import { createAlerts, type Alert } from "../model/alerts.ts";
 import { pastedImagePath } from "../model/attachments.ts";
@@ -31,6 +32,7 @@ import { DiffView, type DiffState } from "./DiffView.tsx";
 import { FilePreview } from "./FilePreview.tsx";
 import { FilesPanel } from "./FilesPanel.tsx";
 import { DraftView } from "./DraftView.tsx";
+import { SetupNotice } from "./SetupNotice.tsx";
 import { useComposerMenu } from "./useComposerMenu.ts";
 import { useDetails } from "./useDetails.ts";
 import { useFiles } from "./useFiles.ts";
@@ -341,6 +343,8 @@ export function App(props: { readonly session: T3Session; readonly config: T3tui
 
   const project = threadShell ? shell.snapshot?.projects.find((candidate) => candidate.id === threadShell.projectId) : undefined;
   const live = shell.status.type === "live";
+  // Re-checked when the connection state changes, so setting up T3 Code while t3tui runs clears the notice once it connects.
+  const noT3Setup = useMemo(() => !live && !detectT3CodeSetup().detected, [live]);
   useEffect(() => (live ? session.watchServerConfig(setServerConfig) : undefined), [session, live]);
   // An idle subagent isn't in the shell; its family (root, forks, all subagents) is, on servers that serve it.
   const supportsFamilies = serverConfig?.config?.shellThreadFamilies === true;
@@ -1449,7 +1453,9 @@ export function App(props: { readonly session: T3Session; readonly config: T3tui
         <box flexDirection="column" flexGrow={1} minHeight={0} onSizeChange={function (this: { height: number }) { setColumnHeight(this.height); }}>
           <box flexDirection="column" flexGrow={1} minHeight={0} visible={!drawerInPlace && zoom !== "message"}>
           <box flexDirection="column" flexGrow={1} minHeight={0} visible={!drawerInPlace && zoom !== "message"} onMouseDown={focusConversation} onSizeChange={function (this: { height: number }) { setContentHeight(this.height); }}>
-          {conversationHidden ? null : settingsIndex !== null ? (
+          {conversationHidden ? null : noT3Setup ? (
+            <SetupNotice />
+          ) : settingsIndex !== null ? (
             <SettingsView
               rows={settingsRows}
               server={serverSettingLines(serverConfig?.config ?? null)}

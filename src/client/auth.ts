@@ -24,10 +24,32 @@ export interface StoredCredential {
   readonly scopes?: readonly string[];
 }
 
-const t3Home = () => process.env.T3CODE_HOME ?? join(homedir(), ".t3");
+export const t3Home = () => process.env.T3CODE_HOME ?? join(homedir(), ".t3");
 export const configDir = () =>
   join(process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "t3tui");
 const credentialPath = () => join(configDir(), "credentials.json");
+
+/** Files a T3 Code first run leaves in the t3 home: a running server, or a set-up one. */
+const SETUP_TRACES = ["userdata/server-runtime.json", "userdata/server-owner.sqlite", "userdata/environment-id"] as const;
+
+/**
+ * Whether this machine shows a T3 Code setup t3tui can work with: an explicit target
+ * (T3TUI_SERVER/T3TUI_TOKEN), files in the t3 home, or the `t3` CLI installed. Without any
+ * of those, t3tui has nothing to connect to — it is a companion app, not a standalone one.
+ */
+export function detectT3CodeSetup(exists: (path: string) => boolean = existsSync, which: (program: string) => string | null = Bun.which): { readonly detected: boolean } {
+  if (process.env.T3TUI_SERVER || process.env.T3TUI_TOKEN) return { detected: true };
+  const home = t3Home();
+  if (SETUP_TRACES.some((trace) => exists(join(home, trace)))) return { detected: true };
+  if (findT3Binary(exists, which) !== null) return { detected: true };
+  return { detected: false };
+}
+
+/** What to say when no T3 Code setup is detected: set up T3 Code (and its agent ACPs there) first. */
+export const NO_T3CODE_SETUP_MESSAGE =
+  "t3tui is a companion app to T3 Code, and no T3 Code setup was detected on this machine. " +
+  "Set up T3 Code first — install the desktop app or the `t3` CLI and open it once so its server is set up and running — then start t3tui again. " +
+  "Attach agent ACPs (providers) in the official T3 Code application; t3tui connects to that server and works from there.";
 
 /** Moves settings and credentials from before the rename (~/.config/tui3) to the new folder, once. */
 export function migrateConfigDir(): void {
@@ -44,6 +66,8 @@ export async function resolveLocalServer(): Promise<ServerTarget> {
   try {
     runtime = JSON.parse(await readFile(runtimePath, "utf8"));
   } catch {
+    // No runtime file and nothing else of a T3 Code setup: say what t3tui is, not just what is missing.
+    if (!detectT3CodeSetup().detected) throw new Error(NO_T3CODE_SETUP_MESSAGE);
     throw new Error(`No running T3 Code server found (${runtimePath} is missing). Start T3 Code, or set T3TUI_SERVER.`);
   }
   const origin = runtime.origin ?? `http://127.0.0.1:${runtime.port ?? 3773}`;
@@ -83,11 +107,20 @@ async function writeCredential(credential: StoredCredential): Promise<void> {
   await chmod(path, 0o600);
 }
 
+const t3Candidates = (which: (program: string) => string | null): (string | null)[] => [join(t3Home(), "bin", "t3"), which("t3"), join(homedir(), ".local", "bin", "t3.cmd")];
+
+/** The installed `t3` CLI path, or null when none is: T3TUI_T3_BIN, the t3 home's bin, the PATH, the Windows installer spot. */
+export function findT3Binary(exists: (path: string) => boolean = existsSync, which: (program: string) => string | null = Bun.which): string | null {
+  const override = process.env.T3TUI_T3_BIN;
+  if (override) return exists(override) ? override : null;
+  return t3Candidates(which).find((path): path is string => path !== null && exists(path)) ?? null;
+}
+
 /** The `t3` CLI: the desktop app's copy, or the one on the PATH, or where the Windows installer puts it. A .cmd only runs through cmd. */
 export function t3Command(exists: (path: string) => boolean = existsSync, which: (program: string) => string | null = Bun.which): string[] {
   const t3 =
     process.env.T3TUI_T3_BIN ??
-    [join(t3Home(), "bin", "t3"), which("t3"), join(homedir(), ".local", "bin", "t3.cmd")].find((path): path is string => path !== null && exists(path)) ??
+    t3Candidates(which).find((path): path is string => path !== null && exists(path)) ??
     "t3";
   return /\.(?:cmd|bat)$/i.test(t3) ? ["cmd.exe", "/c", "call", t3] : [t3];
 }
