@@ -1,0 +1,27 @@
+# Every push typechecks, lints and runs the test suite. Run it by hand to check without pushing.
+name: Test
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      # Not checkout's `submodules`: it walks them recursively, and vendor/t3code has gitlinks with no .gitmodules.
+      - run: git submodule update --init --depth=1 vendor/t3code
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      # postinstall links the vendored T3 Code packages and builds dist/, both needed by the tests.
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run lint
+      - run: bun test
