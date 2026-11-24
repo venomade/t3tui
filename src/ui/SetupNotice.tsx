@@ -13,7 +13,8 @@ export function SetupNotice() {
           <strong>t3tui is a companion app to T3 Code</strong>
         </text>
         <text fg={colors.muted} wrapMode="word">No T3 Code setup was detected on this machine, so there is no server to connect to yet.</text>
-        <text fg={colors.muted} wrapMode="word">Set up T3 Code first — install the desktop app or the <strong>t3</strong> CLI and open it once so its server is set up and running — then start t3tui again.</text>
+        <text fg={colors.muted} wrapMode="word">Set up T3 Code first — install the desktop app or the <strong>t3</strong> CLI and open it once so its server is set up and running — then start t3tui again:</text>
+        <text fg={colors.accent} wrapMode="word">https://github.com/pingdotgg/t3code</text>
         <text fg={colors.muted} wrapMode="word">Attach agent ACPs (providers) in the official T3 Code application; t3tui connects to that server and works from there.</text>
       </box>
     </box>

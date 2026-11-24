@@ -48,7 +48,7 @@ export function detectT3CodeSetup(exists: (path: string) => boolean = existsSync
 /** What to say when no T3 Code setup is detected: set up T3 Code (and its agent ACPs there) first. */
 export const NO_T3CODE_SETUP_MESSAGE =
   "t3tui is a companion app to T3 Code, and no T3 Code setup was detected on this machine. " +
-  "Set up T3 Code first — install the desktop app or the `t3` CLI and open it once so its server is set up and running — then start t3tui again. " +
+  "Set up T3 Code first — install the desktop app or the `t3` CLI from https://github.com/pingdotgg/t3code and open it once so its server is set up and running — then start t3tui again. " +
   "Attach agent ACPs (providers) in the official T3 Code application; t3tui connects to that server and works from there.";
 
 /** Moves settings and credentials from before the rename (~/.config/tui3) to the new folder, once. */

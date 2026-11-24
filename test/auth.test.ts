@@ -96,8 +96,9 @@ describe("resolveLocalServer without a setup", () => {
 
   afterEach(() => restoreEnv(saved));
 
-  test("says t3tui is a companion app and T3 Code comes first", async () => {
+  test("says t3tui is a companion app, with the T3 Code URL, and T3 Code comes first", async () => {
     await expect(resolveLocalServer()).rejects.toThrow(/companion app to T3 Code/);
+    await expect(resolveLocalServer()).rejects.toThrow("https://github.com/pingdotgg/t3code");
     await expect(resolveLocalServer()).rejects.toThrow(NO_T3CODE_SETUP_MESSAGE);
   });
 

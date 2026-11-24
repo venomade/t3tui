@@ -35,6 +35,7 @@ describe("no T3 Code setup detected", () => {
     const app = await open({ session: fakeSession({ status: reconnecting(), snapshot: freshSnapshot }) });
     expect(app.frame()).toContain("t3tui is a companion app to T3 Code");
     expect(app.frame()).toContain("No T3 Code setup was detected on this machine");
+    expect(app.frame()).toContain("https://github.com/pingdotgg/t3code");
     expect(app.frame()).toContain("Attach agent ACPs (providers) in the official T3 Code application");
   });
 
