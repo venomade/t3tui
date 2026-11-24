@@ -203,12 +203,27 @@ export async function renderApp(
     throw new Error(`"${text}" is not on screen:\n${frame()}`);
   };
   const calls = (method: string) => fake.calls.filter((call) => call.method === method);
+  // bin.ts owns process.exit through the renderer's destroy handler; emulate that here, with
+  // exit stubbed (recorded as an "exit" call). The cleanup flag keeps afterEach's destroy()
+  // from triggering a real exit via the handler's microtask.
+  const realExit = process.exit;
+  let cleanup = false;
+  process.exit = ((code?: number) => {
+    fake.calls.push({ method: "exit", args: [code ?? 0] });
+  }) as typeof process.exit;
+  rig.renderer.once("destroy", () => {
+    void rig.renderer.closed.finally(() => {
+      if (!cleanup) process.exit(0);
+    });
+  });
   const destroy = () => {
+    cleanup = true;
     try {
       rig.renderer.destroy();
     } catch {
       // Already destroyed by the app quitting.
     }
+    process.exit = realExit;
   };
   return { ...rig, session: fake.session, press, type, paste, click, settle, frame, hints, find, calls, destroy };
 }

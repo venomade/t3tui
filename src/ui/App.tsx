@@ -820,10 +820,10 @@ export function App(props: { readonly session: T3Session; readonly config: T3tui
   };
 
   const quit = () => {
-    void session.stop().finally(() => {
-      renderer.destroy();
-      void renderer.closed.finally(() => process.exit(0));
-    });
+    // bin.ts's destroy handler owns the exit: it waits for the session and the `t3 serve`
+    // t3tui may own (graceful SIGTERM) before process.exit. Exiting here on renderer.closed
+    // alone races that stop, and the exit backstop would SIGKILL the server.
+    void session.stop().finally(() => renderer.destroy());
   };
 
   // Quitting always asks first: ctrl+c and q open this prompt, and only y exits.
