@@ -33,7 +33,7 @@
             "x86_64-linux" = "linux-x64";
             "aarch64-linux" = "linux-arm64";
             "aarch64-darwin" = "darwin-arm64";
-          }.${pkgs.system};
+          }.${pkgs.stdenv.hostPlatform.system};
           # Flake sources from git don't include the submodule's contents, so graft the
           # pinned t3code input in place of vendor/t3code.
           src = pkgs.runCommand "t3tui-src-${version}" { } ''
@@ -53,14 +53,16 @@
             ];
             outputHashMode = "recursive";
             outputHashAlgo = "sha256";
-            outputHash = "sha256-aLJSI2zpF2lh4sZwul4xD2edHcWiqq/BxJXLltaE5jE=";
+            outputHash = "sha256-vaW3HXWIxDu9Iv34UJ63ri3oYsb4g6YFxjO6toF7uJQ=";
             dontFixup = true;
             dontConfigure = true;
             buildPhase = ''
               runHook preBuild
               export HOME=$TMPDIR
               chmod -R u+w .
-              bun install --frozen-lockfile
+              # Every platform's optional packages, so this one hash matches on all `systems`:
+              # a plain install only fetches the host's @opentui/core-* and the hash would differ.
+              bun install --frozen-lockfile --os='*' --cpu='*'
               runHook postBuild
             '';
             installPhase = ''
@@ -111,11 +113,11 @@
       apps = forAllSystems (pkgs: {
         t3tui = {
           type = "app";
-          program = "${self.packages.${pkgs.system}.t3tui}/bin/t3tui";
+          program = "${self.packages.${pkgs.stdenv.hostPlatform.system}.t3tui}/bin/t3tui";
         };
         default = {
           type = "app";
-          program = "${self.packages.${pkgs.system}.t3tui}/bin/t3tui";
+          program = "${self.packages.${pkgs.stdenv.hostPlatform.system}.t3tui}/bin/t3tui";
         };
       });
 
