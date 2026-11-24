@@ -49,7 +49,7 @@ With nix — this repo is a flake that builds the binary itself (`packages.<syst
 On other systems, or to run unreleased changes, you need [Bun](https://bun.sh) 1.3.14 or later:
 
 ```sh
-git clone --recurse-submodules https://github.com/callumalpass/t3tui.git && cd t3tui
+git clone --recurse-submodules https://github.com/venomade/t3tui.git && cd t3tui
 bun install          # also links the pinned T3 Code packages into node_modules and builds dist/
 bun link             # optional: puts `t3tui` on your PATH
 ```
