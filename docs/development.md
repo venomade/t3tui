@@ -39,6 +39,6 @@ Releases are standalone binaries built with `bun build --compile`, so users don'
 git tag v0.1.0 && git push origin v0.1.0
 ```
 
-The [Release workflow](../.github/workflows/release.yml) compiles linux-x64, linux-arm64, darwin-x64, darwin-arm64 and windows-x64 on one machine, opens each binary's dashboard on its own OS (on Windows it only runs `t3tui version`), and publishes them gzipped with a `SHA256SUMS` file, which `install.sh`, `install.ps1` and `t3tui upgrade` all check. Run the workflow by hand to build and check the binaries without releasing.
+The [Release workflow](../.github/workflows/release.yml) compiles linux-x64, linux-arm64, darwin-x64, darwin-arm64 and windows-x64 on one machine, opens each binary's dashboard on its own OS (on Windows it only runs `t3tui version`), and publishes them gzipped with a `SHA256SUMS` file, which `t3tui upgrade` checks. Run the workflow by hand to build and check the binaries without releasing.
 
 To build a binary locally, run `bun run compile` (this machine) or name targets, e.g. `bun run compile darwin-arm64`. Other platforms' targets need their OpenTUI packages: `bun install --os='*' --cpu='*'`. Binaries go in `release/`.

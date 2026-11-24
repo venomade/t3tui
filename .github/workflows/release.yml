@@ -1,5 +1,5 @@
 # Pushing a tag like v0.1.0 builds a binary per platform, runs each on its own OS, and
-# publishes them as a GitHub Release for install.sh, install.ps1 and `t3tui upgrade`. Run it by hand
+# publishes them as a GitHub Release for `t3tui upgrade`. Run it by hand
 # to build and check the binaries without releasing them.
 name: Release
 
@@ -108,8 +108,7 @@ jobs:
           cat > notes.md <<EOF
           Built against T3 Code \`${t3code:-$commit}\`.
 
-          Install: \`curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | sh\`
-          On Windows: \`irm https://raw.githubusercontent.com/${{ github.repository }}/main/install.ps1 | iex\`
+          t3tui is a companion to T3 Code: install and set up T3 Code first (https://github.com/pingdotgg/t3code).
           Already installed: \`t3tui upgrade\`
           EOF
           gh release create "$GITHUB_REF_NAME" release/* --title "$GITHUB_REF_NAME" --notes-file notes.md --generate-notes

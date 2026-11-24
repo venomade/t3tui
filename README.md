@@ -12,28 +12,18 @@ Built with Bun and [OpenTUI](https://github.com/anomalyco/opentui) (React). t3tu
 
 ## Install
 
-You need a T3 Code server running on the same machine (or a token for a remote one; see [How it connects](#how-it-connects)). On Linux or macOS:
+t3tui is a companion to [T3 Code](https://github.com/pingdotgg/t3code), not a standalone app: install and set up T3 Code first — from [github.com/pingdotgg/t3code](https://github.com/pingdotgg/t3code) — and make sure its server is running on the same machine (or have a token for a remote one; see [How it connects](#how-it-connects)). If t3tui finds no T3 Code setup when it starts, it says so and points you there. Attach your agent ACPs (providers) in the T3 Code app.
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/callumalpass/t3tui/main/install.sh | sh
-```
-
-Or with nix — this repo is a flake that builds the binary itself (`packages.<system>.t3tui`, also as `apps.t3tui`), plus the headless server CLI as `packages.<system>.t3`:
+With nix — this repo is a flake that builds the binary itself (`packages.<system>.t3tui`, also as `apps.t3tui`):
 
 ```nix
 {
   inputs.t3tui.url = "git+https://git.venomade.com/venomade/t3tui.git"; # or the GitHub mirror
-  # in home-manager: home.packages = [ inputs.t3tui.packages.${system}.t3tui inputs.t3tui.packages.${system}.t3 ];
+  # in home-manager: home.packages = [ inputs.t3tui.packages.${system}.t3tui ];
 }
 ```
 
-On Windows, in PowerShell:
-
-```powershell
-irm https://raw.githubusercontent.com/callumalpass/t3tui/main/install.ps1 | iex
-```
-
-That puts a single `t3tui` binary in `~/.local/bin`, or `%LOCALAPPDATA%\Programs\t3tui` on Windows, which it adds to your PATH (set `T3TUI_INSTALL_DIR` to change it). It needs nothing else installed, not even Bun. `t3tui upgrade` replaces it with the latest release, and `t3tui version` says which you have. Each release notes the T3 Code version it was built against.
+The binary needs nothing else installed, not even Bun. `t3tui upgrade` replaces it with the latest release, and `t3tui version` says which you have. Each release notes the T3 Code version it was built against.
 
 ### Build from source
 
@@ -89,7 +79,7 @@ See [docs/reference.md](docs/reference.md) for every key, the message box, diffs
 
 t3tui finds the local T3 Code server from `~/.t3/userdata/server-runtime.json` (override with `T3TUI_SERVER`). On first run it issues itself a session with `t3 auth session issue --label t3tui`, scoped to what it needs, and stores it in `~/.config/t3tui/credentials.json`. Revoke it any time with `t3 auth session revoke`. For a remote server, pass a token in `T3TUI_TOKEN`.
 
-No desktop app needed: if no local server answers when t3tui starts, it runs `t3 serve` itself (found via `T3TUI_T3_BIN`, `~/.t3/bin/t3`, or `PATH` — the flake in this repo also packages it, so `nix develop` provides it) and stops that server again on quit. Its output goes to `~/.config/t3tui/server.log`. If a server is already running, t3tui just connects to it. To run the server separately instead, `nix develop --command t3 serve` (or `nix build .#t3` and run `result/bin/t3 serve`) starts T3 Code with no browser.
+No desktop app needed: if no local server answers when t3tui starts, it runs `t3 serve` itself (the `t3` CLI from your T3 Code install, found via `T3TUI_T3_BIN`, `~/.t3/bin/t3`, or `PATH`) and stops that server again on quit. Its output goes to `~/.config/t3tui/server.log`. If a server is already running, t3tui just connects to it.
 
 The scopes, the protocol and how to update for a newer T3 Code are in [docs/development.md](docs/development.md).
 
