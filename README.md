@@ -106,6 +106,10 @@ The scopes, the protocol and how to update for a newer T3 Code are in [docs/deve
 
 Reviewing or commenting on pull request diffs, and the project settings editor. Use the T3 Code app for those.
 
+## Agent Usage
+
+This fork was updated from the original and improved upon using **Mistral Large 4**, and each release is checked by **Gemini 4 Neon** before releasing.
+
 ## Licence
 
 [MIT](LICENSE). T3 Code, pulled in as a submodule under `vendor/t3code`, is also MIT.
