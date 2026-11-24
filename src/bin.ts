@@ -24,7 +24,7 @@ env:
   T3TUI_TOKEN   bearer token for a remote server (local servers mint one via \`t3\`)
   T3TUI_T3_BIN  the \`t3\` binary to run \`t3 serve\` with when no local server is up
 
-with no local server running, t3tui starts \`t3 serve\` itself and stops it on quit;`
+with no local server running, t3tui starts \`t3 serve\` itself and stops it on quit.`
 
 async function main(argv: string[]) {
   migrateConfigDir();
