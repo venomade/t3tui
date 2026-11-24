@@ -33,7 +33,7 @@ describe("turn cursor and checkpoint targets", () => {
   test("rewinds before the prompt, using visible predecessors across ordinal gaps", () => {
     const turns = turnTargets(projection(), entries(), null, true);
     expect(turns.map((turn) => turn.revertTurnCount)).toEqual([0, 1, 2]);
-    expect(findRevertCheckpoint(projection().checkpoints, turns[2]!.revertTurnCount!)?.id).toBe(CheckpointId.make("cp-2"));
+    expect(findRevertCheckpoint(projection(), turns[2]!.revertTurnCount!)?.id).toBe(CheckpointId.make("cp-2"));
   });
   test("does not mistake the first message in paged history for the thread start", () => {
     const turns = turnTargets(projection(), entries().slice(1), null, false);

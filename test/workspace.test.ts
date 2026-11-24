@@ -39,8 +39,8 @@ describe("workspace logic", () => {
   });
 
   test("branch selection reuses worktrees and returns the default branch to the project", () => {
-    expect(resolveBranchSelectionTarget({ activeProjectCwd: "/repo", activeWorktreePath: "/old", refName: { isDefault: false, worktreePath: "/existing" } })).toEqual({ checkoutCwd: "/existing", nextWorktreePath: "/existing", reuseExistingWorktree: true });
-    expect(resolveBranchSelectionTarget({ activeProjectCwd: "/repo", activeWorktreePath: "/old", refName: { isDefault: true, worktreePath: null } })).toEqual({ checkoutCwd: "/repo", nextWorktreePath: null, reuseExistingWorktree: false });
+    expect(resolveBranchSelectionTarget({ activeProjectCwd: "/repo", activeWorktreePath: "/old", refName: { isDefault: false, worktreePath: "/existing" } })).toEqual({ checkoutCwd: "/existing", nextWorktreePath: "/existing", reuseExistingWorktree: true, staysInActiveCheckout: false });
+    expect(resolveBranchSelectionTarget({ activeProjectCwd: "/repo", activeWorktreePath: "/old", refName: { isDefault: true, worktreePath: null } })).toEqual({ checkoutCwd: "/repo", nextWorktreePath: null, reuseExistingWorktree: false, staysInActiveCheckout: false });
   });
 
   test("setup progress names the web's stage, percent, details and failures", () => {

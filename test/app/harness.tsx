@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { testRender } from "@opentui/react/test-utils";
 import { createMockKeys, type KeyInput } from "@opentui/core/testing";
-import type { OrchestrationV2ShellSnapshot, OrchestrationV2ThreadProjection, ThreadId } from "@t3tools/contracts";
+import { RunId, type OrchestrationV2ShellSnapshot, type OrchestrationV2ThreadProjection, type ThreadId } from "@t3tools/contracts";
 
 import type { ConnectionStatus, T3Session } from "../../src/client/session.ts";
 import { DEFAULT_CONFIG, type T3tuiConfig } from "../../src/config.ts";
@@ -52,7 +52,11 @@ export function fakeSession(
 ) {
   const calls: Call[] = [];
   const threadListeners = new Set<(value: unknown) => void>();
-  const snapshot = state.snapshot ?? v2ShellSnapshot;
+  // The default thread has a finished run, as upstream's menu tests assume: "Mark unread"
+  // only shows once the latest run completed.
+  const snapshot =
+    state.snapshot ??
+    ({ ...v2ShellSnapshot, threads: v2ShellSnapshot.threads.map((thread) => ({ ...thread, latestRunId: RunId.make("run-v2") })) } as OrchestrationV2ShellSnapshot);
   const projection = state.projection ?? v2Projection;
   const live = <T,>(value: T) => (listener: (value: T) => void) => {
     listener(value);

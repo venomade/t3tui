@@ -22,12 +22,34 @@
   "dependencies": {
     "@opentui/core": "0.8.1",
     "@opentui/react": "0.8.1",
+    "@pierre/diffs": "1.7.0-beta.4",
+    "@pierre/trees": "1.0.0-beta.6",
+    "@pierre/words": "file:vendor/t3code/apps/web/deps/pierre-words-0.2.2-t3.4-7c04b7f1.tgz",
     "diff": "9.0.0",
-    "effect": "4.0.5",
+    "effect": "4.1.5",
+    "entities": "^6.0.1",
+    "get-east-asian-width": "^1.6.0",
+    "gt-i18n": "1.0.40",
+    "gt-react": "11.4.18",
+    "hast-util-sanitize": "^5.0.2",
+    "hast-util-to-html": "^9.0.5",
     "mdast-util-directive": "^3.2.0",
+    "mdast-util-to-hast": "13.2.1",
     "micromark-extension-directive": "^4.0.0",
+    "micromark-util-character": "2.1.1",
+    "micromark-util-decode-string": "2.0.1",
+    "micromark-util-types": "2.0.2",
+    "property-information": "^7.2.0",
     "react": "^19.2.0",
+    "rehype-raw": "7.0.0",
+    "rehype-sanitize": "6.0.0",
+    "remark-breaks": "4.0.0",
+    "remark-gfm": "4.0.1",
+    "remark-math": "6.0.0",
     "remark-parse": "^11.0.0",
+    "remark-rehype": "11.1.2",
+    "unified": "11.0.5",
+    "yaml": "^2.9.0",
     "zustand": "5.0.11"
   },
   "devDependencies": {
@@ -37,5 +59,8 @@
     "@types/react": "^19.3.0",
     "jose": "^6.2.14",
     "typescript": "^5.9.0"
+  },
+  "patchedDependencies": {
+    "effect@4.1.5": "patches/effect@4.1.5.patch"
   }
 }

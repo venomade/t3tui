@@ -1,14 +1,28 @@
-import type { MessageId, OrchestrationV2ThreadProjection, RunId } from "@t3tools/contracts";
-import { checkpointFileTotals, deriveThreadCheckpointSummaries } from "@t3tools/client-runtime/state/thread-checkpoints";
+import type { ChatAttachment, MessageId, OrchestrationV2CheckpointFileTotals, OrchestrationV2ThreadProjection, RunId } from "@t3tools/contracts";
+import { deriveThreadCheckpointSummaries } from "@t3tools/client-runtime/state/thread-checkpoints";
 import { deriveRevertTurnCountByUserMessageId, findRevertCheckpoint, type TimelineEntriesProjection } from "../../vendor/t3code/apps/web/src/session-logic.ts";
 
 export { findRevertCheckpoint };
 export type TurnCheckpoint = ReturnType<typeof deriveThreadCheckpointSummaries>[number];
+
+/** Upstream inlined this into its diff views; the summary still carries `files`/`filesTotal`. */
+export function checkpointFileTotals(
+  checkpoint: Pick<TurnCheckpoint, "files" | "filesTotal">,
+): OrchestrationV2CheckpointFileTotals {
+  if (checkpoint.filesTotal !== undefined) return checkpoint.filesTotal;
+  let additions = 0;
+  let deletions = 0;
+  for (const file of checkpoint.files) {
+    additions += file.additions;
+    deletions += file.deletions;
+  }
+  return { count: checkpoint.files.length, additions, deletions };
+}
 export interface TurnTarget {
   readonly messageId: MessageId;
   readonly runId: RunId;
   readonly text: string;
-  readonly hasAttachments: boolean;
+  readonly attachments: readonly ChatAttachment[];
   readonly checkpoint: TurnCheckpoint | undefined;
   readonly revertTurnCount: number | undefined;
 }
@@ -19,7 +33,7 @@ export function turnTargets(projection: OrchestrationV2ThreadProjection, entries
   const revertCounts = deriveRevertTurnCountByUserMessageId({
     timelineEntries: entries,
     checkpoints,
-    threadStartCheckpointReady: historyComplete && findRevertCheckpoint(projection.checkpoints, 0) !== undefined,
+    threadStartCheckpointAvailable: historyComplete && findRevertCheckpoint(projection, 0) !== undefined,
     availableRevertTurnCounts: availableRevertTurnCounts(projection),
     unsettledRunId,
   });
@@ -29,7 +43,7 @@ export function turnTargets(projection: OrchestrationV2ThreadProjection, entries
     const message = entry.message;
     const runId = entry.message.runId;
     seen.add(runId);
-    return [{ messageId: message.id, runId, text: message.text, hasAttachments: (message.attachments?.length ?? 0) > 0,
+    return [{ messageId: message.id, runId, text: message.text, attachments: message.attachments ?? [],
       checkpoint: checkpoints.findLast((checkpoint) => checkpoint.runId === message.runId), revertTurnCount: revertCounts.get(message.id) }];
   });
 }

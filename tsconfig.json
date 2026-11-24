@@ -13,7 +13,12 @@
     "skipLibCheck": true,
     "types": [
       "bun"
-    ]
+    ],
+    "preserveSymlinks": true,
+    "paths": {
+      "~/*": ["./vendor/t3code/apps/web/src/*"],
+      "@pierre/words/core": ["./node_modules/@pierre/words/dist/core.d.ts"]
+    }
   },
   "include": [
     "src",

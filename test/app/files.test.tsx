@@ -247,7 +247,7 @@ describe("acting on a file", () => {
     await prefix(app, "k");
     await app.press("i");
     await app.press("return");
-    expect(app.calls("sendMessage")[0]?.args[1]).toBe("[src](src) [debug.log](debug.log)");
+    expect(app.calls("sendMessage")[0]?.args[1]).toBe("[src](./src) [debug.log](debug.log)");
   });
 
   test("y copies the path", async () => {

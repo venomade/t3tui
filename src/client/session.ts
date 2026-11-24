@@ -22,7 +22,7 @@ import {
   type OrchestrationV2Subagent,
   type RunId,
   type SecretRequestAnswerInput,
-  type ThreadId,
+  ThreadId,
   type DiscoveredLocalServer,
   type GitActionProgressEvent,
   type GitRunStackedActionResult,
@@ -71,6 +71,8 @@ import {
   type PullRequestReviewVerdict,
   type PullRequestUpdateMethod,
   type ThreadPullRequestKey,
+  type GuestShareCreateResult,
+  type ProjectCreateFromThreadResult,
   WS_METHODS,
 } from "@t3tools/contracts";
 import { applyOrchestrationV2ProjectionEvent } from "@t3tools/client-runtime/state/orchestration-v2-projection";
@@ -428,6 +430,32 @@ export class T3Session {
       unwatch = this.watchThread(initial.thread.id, (next) => { state = next; inspect(); });
       this.rollback(initial.thread.id, checkpoint, restoreFiles, commandId).then(() => { accepted = true; inspect(); }, finish);
     });
+  }
+
+  /** Forks one run of a thread into a new thread, as the web's "fork from here" does; resolves with the new thread's id. */
+  async forkThread(input: { readonly sourceThreadId: ThreadId; readonly runId: RunId; readonly title?: string }): Promise<ThreadId> {
+    const targetThreadId = ThreadId.make(crypto.randomUUID());
+    await this.dispatch({
+      type: "thread.fork",
+      commandId: newCommandId(),
+      createdBy: "user",
+      creationSource: "web",
+      sourceThreadId: input.sourceThreadId,
+      targetThreadId,
+      sourcePoint: { type: "run", runId: input.runId },
+      ...(input.title === undefined ? {} : { title: input.title }),
+    });
+    return targetThreadId;
+  }
+
+  /** Creates a guest share link for a thread, as the web's "Share with guest" does. */
+  guestShareCreate(threadId: ThreadId): Promise<GuestShareCreateResult> {
+    return Effect.runPromise(this.requireConnection().rpc[WS_METHODS.guestShareCreate]({ threadId }));
+  }
+
+  /** Promotes a scratch thread's folder to a project, as the web's "Turn into project" does. */
+  createProjectFromThread(threadId: ThreadId): Promise<ProjectCreateFromThreadResult> {
+    return Effect.runPromise(this.requireConnection().rpc[WS_METHODS.projectsCreateFromThread]({ threadId }));
   }
 
   /** Runs a commit / push / PR action, reporting progress as it goes. Rejects with the server's message on failure. */
@@ -1058,6 +1086,12 @@ export class T3Session {
                     ? item.snapshot
                     : mergeShellSnapshotProjects(previous, item.snapshot, { resolvedRepositoryIdentityRoots: item.resolvedRepositoryIdentityRoots }),
               });
+              return;
+            case "snapshot-required":
+              // t3tui never resumes with a cursor, so ask for a fresh full snapshot by
+              // reconnecting; the new subscription gets a plain "snapshot" item.
+              this.setShell({ snapshot: null });
+              this.connectionLost("snapshot required");
               return;
             default:
               if (previous) this.setShell({ snapshot: applyShellStreamEvent(previous, item) });

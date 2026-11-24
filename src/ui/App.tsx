@@ -8,7 +8,7 @@ import { isAbsolute, join, relative } from "node:path";
 import { parseFileUrlHref, resolvePathLinkTarget, splitFilePathPosition } from "@t3tools/shared/fileLinks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { ChatAttachment, OrchestrationMessageContext } from "@t3tools/contracts";
+import type { AttachmentCreateUploadUrlInput, ChatAttachment, OrchestrationMessageContext } from "@t3tools/contracts";
 import type { ServerConfigState, ShellState, T3Session, ThreadState } from "../client/session.ts";
 import { createAlerts, type Alert } from "../model/alerts.ts";
 import { pastedImagePath } from "../model/attachments.ts";
@@ -817,6 +817,20 @@ export function App(props: { readonly session: T3Session; readonly config: T3tui
       drafts.current.set(id, next);
       if (id === activeComposerKey.current && composerRef.current) { chips.replaceText(composerRef.current, next); setMode("input"); }
     },
+    restoreAttachments: (id, attachments) => {
+      // Re-upload each one from its signed URL, as the web's rewind does, then put them back on that composer.
+      void (async () => {
+        const restored: ChatAttachment[] = [];
+        for (const attachment of attachments) {
+          if (attachment.type !== "image" && attachment.type !== "file") continue;
+          const bytes = await session.attachmentImage(attachment);
+          restored.push(await session.uploadAttachment({ type: attachment.type, name: attachment.name, mimeType: attachment.mimeType, sizeBytes: bytes.length } as AttachmentCreateUploadUrlInput, bytes));
+        }
+        attach.restore(id, restored);
+        say(restored.length > 0 ? `Restored ${restored.length} attachment${restored.length === 1 ? "" : "s"}` : "No attachments could be restored.", restored.length === 0);
+      })().catch((error) => say(`Could not restore attachments: ${messageOf(error)}`, true));
+    },
+    openForkedThread: (id) => openThread(id),
   });
 
   // Pull requests: the P view, link/unlink/watch, a draft checked out from one.

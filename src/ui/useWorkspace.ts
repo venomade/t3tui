@@ -2,7 +2,7 @@ import type { CliRenderer, KeyEvent } from "@opentui/core";
 import type { OrchestrationProjectShell, OrchestrationV2ThreadShell, ServerConfig, ServerLifecycleStreamEvent, TerminalSummary, ThreadId, WorktreeSetupSnapshot } from "@t3tools/contracts";
 import { resolvePathLinkTarget } from "@t3tools/shared/fileLinks";
 import { deriveLocalBranchNameFromRemoteRef, sanitizeNewRefName } from "@t3tools/shared/git";
-import { resolveTerminalSessionLabel } from "@t3tools/shared/terminalLabels";
+import { resolveTerminalSessionLabel } from "@t3tools/shared/terminalLabelsCopy";
 import { useEffect, useRef, useState } from "react";
 
 import type { FeedState, T3Session } from "../client/session.ts";
@@ -78,17 +78,18 @@ export function useWorkspace(input: {
   const threadTerminals = (terminals?.items ?? []).filter((terminal) => terminal.threadId === thread?.id);
   const cwd = thread?.worktreePath ?? project?.workspaceRoot;
   const label = (terminal: TerminalSummary) => resolveTerminalSessionLabel(terminal.terminalId, terminal);
-  const targetOf = (threadId: ThreadId, terminal: Pick<TerminalSummary, "terminalId" | "cwd" | "worktreePath" | "label">): TerminalTarget => ({
+  const targetOf = (threadId: ThreadId, terminal: Pick<TerminalSummary, "terminalId" | "cwd" | "worktreePath" | "label" | "hasRunningSubprocess">): TerminalTarget => ({
     threadId,
     terminalId: terminal.terminalId,
     cwd: terminal.cwd,
     worktreePath: terminal.worktreePath,
     label: resolveTerminalSessionLabel(terminal.terminalId, terminal),
+    hasRunningSubprocess: terminal.hasRunningSubprocess,
   });
   /** The drawer's tabs: the thread's terminals that haven't exited. */
   const tabs = thread ? threadTerminals.filter((terminal) => terminal.status !== "exited").map((terminal) => targetOf(thread.id, terminal)) : [];
   /** In the drawer, or with the whole screen. */
-  const enterTerminal = (terminal: Pick<TerminalSummary, "terminalId" | "cwd" | "worktreePath" | "label">, fullScreen = false) => {
+  const enterTerminal = (terminal: Pick<TerminalSummary, "terminalId" | "cwd" | "worktreePath" | "label" | "hasRunningSubprocess">, fullScreen = false) => {
     if (!thread) return;
     const target = targetOf(thread.id, terminal);
     if (!fullScreen) return input.openPane(target);
@@ -101,7 +102,7 @@ export function useWorkspace(input: {
     const request = newTerminalInput(thread.id, project.workspaceRoot, thread.worktreePath, threadTerminals, terminals?.status === "live");
     run("Terminal opened", async () => {
       await session.openTerminal(request);
-      enterTerminal({ terminalId: request.terminalId, cwd: request.cwd, worktreePath: thread.worktreePath, label: "" }, fullScreen);
+      enterTerminal({ terminalId: request.terminalId, cwd: request.cwd, worktreePath: thread.worktreePath, label: "", hasRunningSubprocess: false }, fullScreen);
     });
   };
   /** The old way in: the terminal takes the screen until ctrl+j. */
@@ -115,7 +116,7 @@ export function useWorkspace(input: {
     });
   };
   /** Closing ends the shell and deletes its history, so it asks first. */
-  const closeTerminal = (terminal: Pick<TerminalSummary, "terminalId" | "label">) => {
+  const closeTerminal = (terminal: Pick<TerminalSummary, "terminalId" | "label" | "hasRunningSubprocess">) => {
     if (!thread) return;
     confirm({
       title: `Close ${resolveTerminalSessionLabel(terminal.terminalId, terminal)}?`,

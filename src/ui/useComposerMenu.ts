@@ -60,7 +60,6 @@ export function useComposerMenu(deps: {
     if (!trigger || triggerKey === dismissed) return null;
     switch (trigger.kind) {
       case "slash-command":
-      case "slash-model":
         return { items: slashItems({ provider, cwd, text: state.text, trigger }), empty: "No matching command.", loading: false };
       case "skill":
         return { items: skillItems(provider, cwd, trigger.query), empty: "No skills found. Try / to browse provider commands.", loading: false };

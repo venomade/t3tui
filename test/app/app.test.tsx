@@ -180,6 +180,51 @@ describe("a finished turn", () => {
     // The date half is locale- and timezone-shaped; the model and duration are not.
     expect(app.frame()).toMatch(/gpt-5\.4 · 3m 12s · /);
   });
+
+  test("forking a turn dispatches thread.fork and opens the new thread", async () => {
+    const app = await open({ session: fakeSession({ projection: withCompletedTurn(), results: { forkThread: "thread-fork-1" } }) });
+    await app.press("]");
+    await app.press("k", { ctrl: true });
+    await app.type("fork from this turn");
+    await app.press("return");
+    await app.settle(50);
+    expect(app.calls("forkThread").map((call) => call.args[0])).toEqual([{ sourceThreadId: v2ThreadId, runId: "run-1", title: "Thread fork" }]);
+  });
+
+  test("rewinding a message with attachments puts the prompt and the attachments back", async () => {
+    const attachment = { type: "image", id: "att-1", name: "shot.png", mimeType: "image/png", sizeBytes: 3 };
+    const projection = structuredClone(withCompletedTurn()) as unknown as {
+      messages: { attachments: unknown }[];
+      turnItems: { type: string; attachments: unknown }[];
+      visibleTurnItems: { item: { type?: string; attachments: unknown } }[];
+      thread: Record<string, unknown>;
+      checkpoints: Record<string, unknown>[];
+      providerThreads: unknown[];
+    };
+    projection.messages[0]!.attachments = [attachment];
+    projection.turnItems.find((item) => item.type === "user_message")!.attachments = [attachment];
+    for (const visible of projection.visibleTurnItems) if (visible.item.type === "user_message") visible.item.attachments = [attachment];
+    // A thread-start checkpoint and a provider thread make turn 0 rewindable.
+    projection.thread.activeProviderThreadId = "pt-1";
+    projection.providerThreads = [{ id: "pt-1", providerSessionId: "ps-1", providerInstanceId: "codex" }];
+    projection.checkpoints.unshift({ id: "checkpoint-0", threadId: projection.thread.id, scopeId: "scope-1", runId: null, nodeId: null, parentCheckpointId: null, ordinalWithinScope: 0, appRunOrdinal: null, ref: "refs/t3/checkpoint-0", status: "ready", files: [], capturedAt: projection.checkpoints[0]!.capturedAt });
+    const serverConfig = { providers: [{ instanceId: "codex", driver: "codex", enabled: true, auth: { status: "authenticated" }, models: [] }], settings: {}, environment: { capabilities: {} } };
+    const app = await open({
+      session: fakeSession({
+        projection: projection as unknown as OrchestrationV2ThreadProjection,
+        serverConfig,
+        results: { attachmentImage: new Uint8Array([1, 2, 3]), uploadAttachment: { type: "image", id: "att-new", name: "shot.png", mimeType: "image/png", sizeBytes: 3 } },
+      }),
+    });
+    await app.press("]");
+    await app.press("R");
+    await app.settle(30);
+    await app.press("return");
+    await app.settle(80);
+    expect(app.calls("rewind")).toHaveLength(1);
+    expect(app.calls("uploadAttachment").map((call) => call.args[0])).toEqual([{ type: "image", name: "shot.png", mimeType: "image/png", sizeBytes: 3 }]);
+    expect(app.hints()).toBe("Restored 1 attachment");
+  });
 });
 
 describe("live status", () => {

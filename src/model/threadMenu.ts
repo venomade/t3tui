@@ -1,7 +1,9 @@
-import { EnvironmentId, type ContextMenuItem, type OrchestrationV2ShellSnapshot, type OrchestrationV2ThreadShell, type ServerConfig } from "@t3tools/contracts";
+import { EnvironmentId, type ContextMenuItem, type OrchestrationProjectShell, type OrchestrationV2ShellSnapshot, type OrchestrationV2ThreadShell, type ServerConfig } from "@t3tools/contracts";
 import { presentThreadShell, threadRuntimeCanArchive } from "@t3tools/client-runtime/state/models";
 import { canSnooze, effectiveSnoozed, pickSnoozePreset, resolveSnoozePresets, type SnoozePreset } from "@t3tools/client-runtime/state/thread-settled";
 import { pinOrderKeyBetween } from "@t3tools/client-runtime/state/thread-sort";
+import { isScratchProject } from "@t3tools/client-runtime/state/projects";
+import { managedCapabilityDenial } from "@t3tools/client-runtime/contract-labels";
 
 import type { T3tuiConfig } from "../config.ts";
 import { buildThreadActionMenuItems, type ThreadActionMenuId } from "../../vendor/t3code/apps/web/src/components/threadActionMenu.logic.ts";
@@ -10,8 +12,8 @@ export type { ThreadActionMenuId };
 
 const LOCAL = EnvironmentId.make("local");
 
-/** Web-only actions: project settings, guest links, turning into a project. */
-const UNSUPPORTED: ReadonlySet<ThreadActionMenuId> = new Set(["project-settings", "share-guest", "turn-into-project", "filter-by-project"]);
+/** Web-only actions: the project settings editor and the sidebar's project filter. */
+const UNSUPPORTED: ReadonlySet<ThreadActionMenuId> = new Set(["project-settings", "filter-by-project"]);
 
 export interface ThreadMenu {
   readonly items: readonly ContextMenuItem<ThreadActionMenuId>[];
@@ -19,7 +21,7 @@ export interface ThreadMenu {
 }
 
 /** The web sidebar's thread menu (right-click), from the same builder, less what t3tui can't do. */
-export function threadMenu(input: { readonly thread: OrchestrationV2ThreadShell; readonly config: ServerConfig | null; readonly timestampFormat: T3tuiConfig["timestampFormat"]; readonly now?: Date }): ThreadMenu {
+export function threadMenu(input: { readonly thread: OrchestrationV2ThreadShell; readonly config: ServerConfig | null; readonly timestampFormat: T3tuiConfig["timestampFormat"]; readonly projects?: readonly OrchestrationProjectShell[]; readonly now?: Date }): ThreadMenu {
   const { config } = input;
   // The presented shell carries what the menu reads: pending requests, the runtime.
   const thread = presentThreadShell(config?.environment.environmentId ?? LOCAL, input.thread);
@@ -38,8 +40,16 @@ export function threadMenu(input: { readonly thread: OrchestrationV2ThreadShell;
     canSnoozeNow: canSnooze(thread, { now: now.toISOString() }),
     isRegeneratingTitle: thread.titleRegeneration != null,
     isRunning: !threadRuntimeCanArchive(thread.runtime),
+    hasCompletedRun: thread.latestRun?.completedAt != null,
     supports: { settlement: loaded, autoSettleOptOut: config?.environment.capabilities.threadAutoSettleOptOut === true, snooze: loaded, pinning: loaded, titleRegeneration: loaded },
     snoozePresets,
+    // Guest links need the Labs beta on and Connect allowed, as the web's availability check reads them.
+    canShareWithGuest: config?.settings.guestSharingEnabled === true && managedCapabilityDenial(config.managedPolicy, "connect") === undefined,
+    // A scratch thread with its own folder can become a project, when the server allows it.
+    canTurnIntoProject:
+      thread.worktreePath != null &&
+      config?.environment.capabilities.threadProjectFromScratch === true &&
+      (input.projects ?? []).some((project) => project.id === thread.projectId && isScratchProject(project, config?.scratchWorkspaceRoot)),
   });
   return { items: items.filter((item) => !UNSUPPORTED.has(item.id)), snoozePresets };
 }

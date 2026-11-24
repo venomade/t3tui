@@ -150,7 +150,7 @@ describe("threadDetails", () => {
   test("shows the run state, the context window left and the provider's limits", () => {
     const projection = { ...v2Projection, providerTurns: [{ tokenUsage: { usedTokens: 62_000, maxTokens: 100_000, updatedAt: "2026-06-20T00:00:00.000Z" } }] } as unknown as OrchestrationV2ThreadProjection;
     const serverConfig = {
-      providers: [{ instanceId: "codex", driver: "codex", enabled: true, usageLimits: { checkedAt: "2026-06-20T00:00:00.000Z", windows: [{ id: "5h", kind: "session", label: "5h", usedPercent: 39 }, { id: "week", kind: "weekly", label: "week", usedPercent: 95 }] } }],
+      providers: [{ instanceId: "codex", driver: "codex", enabled: true, auth: { status: "authenticated" }, usageLimits: { checkedAt: "2026-06-20T00:00:00.000Z", windows: [{ id: "5h", kind: "session", label: "5h", usedPercent: 39 }, { id: "week", kind: "weekly", label: "week", usedPercent: 95 }] } }],
     };
     const details = detailsOf(thread({ status: "running", activeRunId: "run-1", latestRunId: "run-1" }), null, null, { projection, serverConfig } as never);
     expect(details.context).toEqual({ left: 38, used: "62k" });

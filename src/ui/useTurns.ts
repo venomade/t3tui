@@ -1,5 +1,5 @@
 import type { ScrollBoxRenderable } from "@opentui/core";
-import type { OrchestrationV2ThreadProjection, ServerConfig, ThreadId } from "@t3tools/contracts";
+import type { ChatAttachment, OrchestrationV2ThreadProjection, ServerConfig, ThreadId } from "@t3tools/contracts";
 import { useEffect, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from "react";
 import type { T3Session } from "../client/session.ts";
 import type { Binding } from "../model/keymap.ts";
@@ -27,6 +27,10 @@ export function useTurns(input: {
   readonly say: (text: string, bad?: boolean) => void;
   readonly showConversation: () => void;
   readonly restorePrompt: (threadId: ThreadId, text: string) => void;
+  /** Puts a rewound message's attachments back on that thread's composer. */
+  readonly restoreAttachments: (threadId: ThreadId, attachments: readonly ChatAttachment[]) => void;
+  /** Opens a thread forked from one of this thread's turns. */
+  readonly openForkedThread: (threadId: ThreadId) => void;
 }) {
   const [cursor, setCursor] = useState<{ threadId: ThreadId; messageId: string } | null>(null);
   const [reverting, setReverting] = useState(false);
@@ -78,22 +82,36 @@ export function useTurns(input: {
     if (!provider || provider.supportsConversationRollback === false) return input.say("This provider does not support reverting conversation history. Start a new thread instead.", true);
     if (input.timeline?.isWorking) return input.say("Interrupt the current turn before reverting checkpoints.", true);
     const turnCount = target.revertTurnCount;
-    const checkpoint = turnCount === undefined ? undefined : findRevertCheckpoint(projection.checkpoints, turnCount);
+    const checkpoint = turnCount === undefined ? undefined : findRevertCheckpoint(projection, turnCount);
     if (turnCount === undefined || !checkpoint) return input.say("This message has no available checkpoint to rewind to.", true);
-    if (target.hasAttachments) return input.say("Use the T3 Code app to rewind a message with attachments.", true);
     input.confirm({
       title: "Edit from here?",
-      detail: "Rewind chat to before this message. Your prompt returns to the composer. “Revert files too” also undoes your own edits.",
+      detail: "Rewind chat to before this message. Your prompt returns to the composer, with its attachments. “Revert files too” also undoes your own edits.",
       confirmLabel: restoreFiles ? "Revert files too" : "Revert and keep changes",
       run: () => {
         setReverting(true);
         input.session.rewind(projection, checkpoint, turnCount, restoreFiles).then(() => {
           input.restorePrompt(projection.thread.id, recallableComposerPrompt(target.text));
+          if (target.attachments.length > 0) input.restoreAttachments(projection.thread.id, target.attachments);
           if (currentThread.current === projection.thread.id) { setCursor(null); input.setDiff(null); }
           input.say("Thread rewound");
         }, (error) => input.say(`Could not rewind: ${messageOf(error)}`, true)).finally(() => setReverting(false));
       },
     });
+  };
+  /** Forks the selected turn's run into a new thread and opens it, as the web's "fork from here" does. */
+  const fork = (target = selected) => {
+    const projection = input.projection;
+    if (!target || !projection) return input.say("Select a turn with [ or ] first.");
+    if (input.timeline?.isWorking) return input.say("Interrupt the current turn before forking from a run.", true);
+    input.say("Forking this turn…");
+    input.session.forkThread({ sourceThreadId: projection.thread.id, runId: target.runId, title: `${projection.thread.title || "Thread"} fork` }).then(
+      (forkedId) => {
+        input.say("Forked");
+        input.openForkedThread(forkedId);
+      },
+      (error) => input.say(`Could not fork: ${messageOf(error)}`, true),
+    );
   };
   const turnKeys = input.enabled && turns.length > 0;
   /**
@@ -121,6 +139,7 @@ export function useTurns(input: {
     ...(turnKeys && selected
       ? [
           { keys: [], run: () => revert(true), command: { id: "turn-revert-files", title: "Revert files too", keywords: ["rollback", "rewind", "turn"] } },
+          { keys: [], run: () => fork(), command: { id: "turn-fork", title: "Fork from this turn", keywords: ["fork", "branch", "copy", "new thread"] } },
           ...(input.diff ? [] : [{ keys: ["esc"], run: () => setCursor(null), command: { id: "turn-clear", title: "Clear turn selection" } }]),
         ]
       : []),
@@ -137,6 +156,7 @@ export function useTurns(input: {
         { id: "turn-revert", title: "Revert to before this prompt…", hint: "R", run: run(() => revert(false, turn)) },
         { id: "turn-revert-files", title: "Revert files too…", run: run(() => revert(true, turn)) },
       ] : []),
+      { id: "turn-fork", title: "Fork from this turn…", run: run(() => fork(turn)) },
     ];
   };
   return { selectedMessageId, bindings, diffContext, select, menuFor, openTurnDiff };

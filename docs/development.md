@@ -10,7 +10,7 @@ Set `T3TUI_DEBUG=/path/to/log` to log thread subscriptions and snapshots.
 
 - It finds the local server from `~/.t3/userdata/server-runtime.json` (override with `T3TUI_SERVER`).
 - On first run it mints its own bearer session with `t3 auth session issue --label t3tui`, scoped to `orchestration:read`, `orchestration:operate` (attachments and automations ride on it), `filesystem:read` (diffs), `source-control:write` (git actions), `terminal:read` and `terminal:operate` (terminals, stopping servers), `diagnostics:read` (usage totals) and `providers:manage` (reset credits), and stores it in `~/.config/t3tui/credentials.json` (mode 600). A stored credential missing any of these scopes is replaced with a new one. Revoke it any time with `t3 auth session revoke`. For a remote server, pass a token in `T3TUI_TOKEN`.
-- It speaks T3 Code's own WebSocket RPC protocol, typed by upstream's `@t3tools/contracts`, and applies thread updates with upstream's own reducers. Both come from `vendor/t3code`, a submodule pinned to the server version this was built against (`v0.1.6-nightly.20261030.3917`).
+- It speaks T3 Code's own WebSocket RPC protocol, typed by upstream's `@t3tools/contracts`, and applies thread updates with upstream's own reducers. Both come from `vendor/t3code`, a submodule pinned to the server version this was built against (commit `42c9107983`, v0.1.12-nightly).
 
 ## Following the web app
 
@@ -28,6 +28,8 @@ bun install && bun run typecheck && bun test
 ```
 
 Type errors after a bump point at the protocol changes to adapt to.
+
+Two patches ride along with a bump: upstream's `patches/effect@*.patch` is applied to the installed `effect` package through `patchedDependencies` in `package.json` (copy the current patch file into `patches/` when the effect version changes), and `tscPatches` in `scripts/link-vendor.ts` fixes the spots where classic `tsc` can't infer what upstream's Effect language service can — the vendored packages are copied into `node_modules/@t3tools` for this, so `vendor/` itself stays pristine.
 
 ## Releasing
 

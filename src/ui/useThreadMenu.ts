@@ -115,6 +115,16 @@ export function useThreadMenu(deps: {
       }
       case "copy-thread-id":
         return copy(id, `Thread ID copied: ${id}`);
+      case "share-guest":
+        return run("Guest link created", async () => {
+          const result = await session.guestShareCreate(id);
+          copy(result.url, `Guest link copied: ${result.url}`);
+        });
+      case "turn-into-project":
+        return run("Project created", async () => {
+          await session.createProjectFromThread(id);
+          say(`Project created from ${title}`);
+        });
       case "archive":
         return run("Archived", async () => {
           await session.archiveThread(id);
@@ -138,7 +148,7 @@ export function useThreadMenu(deps: {
   };
 
   const open = (target: OrchestrationV2ThreadShell) => {
-    const menu = threadMenu({ thread: target, config, timestampFormat: deps.timestampFormat });
+    const menu = threadMenu({ thread: target, config, timestampFormat: deps.timestampFormat, projects: deps.snapshot?.projects ?? [] });
     const toPicker = (title: string, items: readonly ContextMenuItem<ThreadActionMenuId>[]): Picker => {
       const groups: { label: string; items: PickerItem[] }[] = [{ label: title, items: [] }];
       for (const item of items) {

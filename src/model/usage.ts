@@ -1,5 +1,6 @@
 import type { ProviderConsumeResetCreditInput, ProviderInstanceId, ServerConfig, ServerProviderResetCredits, UsageSummary } from "@t3tools/contracts";
-import { collectLimitAccounts, collectLimitNotices, collectProviderUsageLimits, formatDuration, limitsNotice, remainingPercent, type LimitPresentations } from "@t3tools/shared/usageLimits";
+import { collectLimitAccounts, collectProviderUsageLimits, remainingPercent, type LimitPresentations } from "@t3tools/shared/usageLimits";
+import { collectLimitNotices, formatDuration, limitsNotice } from "@t3tools/shared/usageLimitsCopy";
 import { formatTokens, formatUsd } from "@t3tools/shared/usageFormat";
 
 /** At or above this much of a window used, the status line calls the limit near. */

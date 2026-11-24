@@ -16,6 +16,7 @@ export interface TerminalTarget {
   readonly cwd: string;
   readonly worktreePath: string | null;
   readonly label: string;
+  readonly hasRunningSubprocess: boolean;
 }
 
 /**

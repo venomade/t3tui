@@ -36,7 +36,7 @@ export function useSecretRequest(input: {
     setValue(value + decoder.decode(event.bytes).replace(/[\r\n]+/g, ""));
   });
 
-  const answer = (reply: { readonly type: "save"; readonly secret: string } | { readonly type: "decline" }) => {
+  const answer = (reply: { readonly type: "save"; readonly values: Readonly<Record<string, string>> } | { readonly type: "decline" }) => {
     const answerInput = request ? secretRequestAnswerInput(request, reply) : null;
     if (!answerInput || busy) return;
     setBusy(true);
@@ -59,7 +59,7 @@ export function useSecretRequest(input: {
   const actions = {
     focus: () => setValue(""),
     cancel: () => setValue(null),
-    save: () => value !== null && answer({ type: "save", secret: value }),
+    save: () => value !== null && answer({ type: "save", values: { "": value } }),
     decline: () => answer({ type: "decline" }),
   };
 

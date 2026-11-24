@@ -18,7 +18,8 @@ import { tildify } from "./paths.ts";
 import type { VcsState } from "../client/session.ts";
 import { formatClock, type T3tuiConfig } from "../config.ts";
 import { buildMenuItems, resolveQuickAction } from "../../vendor/t3code/apps/web/src/components/GitActionsControl.logic.ts";
-import { deriveLatestContextWindowSnapshot, formatContextWindowTokens, latestProviderTurnTokenUsage } from "../../vendor/t3code/apps/web/src/lib/contextWindow.ts";
+import { formatContextWindowTokens } from "../../vendor/t3code/apps/web/src/lib/contextWindow.ts";
+import { deriveLatestContextWindowSnapshot, latestProviderTurnTokenUsage } from "@t3tools/client-runtime/state/context-window";
 import { statusLabel, threadState, type StatusTone } from "./threads.ts";
 import { providerLimits, type LimitWindowLine } from "./usage.ts";
 

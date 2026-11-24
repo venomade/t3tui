@@ -117,6 +117,8 @@ function scheduleText(task: ScheduledTask): string {
       const days = weekdayNames.length > 0 && weekdayNames.length < 7 ? ` ${weekdayNames.join(",")}` : "";
       return `fixed ${schedule.timeOfDay}${days}`;
     }
+    case "once":
+      return `once ${schedule.runAt}`;
     case "webhook":
       return "webhook";
   }

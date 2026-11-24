@@ -18,6 +18,7 @@ import type {
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { pullRequestLinkProject, resolveLinkPullRequestInput } from "@t3tools/client-runtime/pull-request-link-input";
 import { composerPullRequestsFromLinks, filterComposerPullRequestMatches, withLinkedComposerPullRequestsFirst } from "@t3tools/shared/composerPullRequestMatches";
+import { threadPullRequestKeyOf } from "@t3tools/client-runtime/thread-pull-requests";
 import { formatComposerContextReference, sanitizeComposerContextLabel, toKindScopedComposerContextId } from "@t3tools/shared/composerContextReferences";
 import { visibleThreadPullRequests } from "@t3tools/shared/threadPullRequests";
 
@@ -87,6 +88,7 @@ export function rankComposerPullRequests(input: {
       repository,
       query,
       limit: COMPOSER_PULL_REQUEST_RESULT_LIMIT,
+      keyOf: threadPullRequestKeyOf,
     });
     return filtered.map(toComposerPullRequest);
   }
@@ -104,6 +106,7 @@ export function rankComposerPullRequests(input: {
     linked,
     query,
     limit: COMPOSER_PULL_REQUEST_RESULT_LIMIT,
+    keyOf: threadPullRequestKeyOf,
   });
   return ranked.map(toComposerPullRequest);
 }
@@ -413,6 +416,7 @@ export const MERGE_METHOD_LABELS: Record<PullRequestMergeMethod, string> = {
   merge: "Merge",
   squash: "Squash and merge",
   rebase: "Rebase and merge",
+  "fast-forward": "Fast-forward",
 };
 
 /** The runAction actions to offer: what the host can do and the viewer may, for this state. */

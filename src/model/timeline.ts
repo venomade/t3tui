@@ -38,6 +38,8 @@ export interface Timeline {
   readonly rows: readonly MessagesTimelineRow[];
   readonly pending: PendingThreadRequests;
   readonly turns: readonly TurnTarget[];
+  /** Checkpoint summaries by run; an assistant message's summary is the one whose `assistantMessageId` is its id. */
+  readonly turnDiffSummaries: TurnDiffSummaries;
   readonly isWorking: boolean;
   /** When the current run started working, for "Working for 12s". */
   readonly workStartedAt: string | null;
@@ -124,6 +126,7 @@ export function buildTimeline(
   return {
     rows: stable.result,
     pending,
+    turnDiffSummaries,
     turns: turnTargets(projection, entries.entries, isWorking ? runtime?.activeRunId ?? null : null, options.historyComplete),
     isWorking,
     workStartedAt,

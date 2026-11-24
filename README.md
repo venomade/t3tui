@@ -84,7 +84,7 @@ The scopes, the protocol and how to update for a newer T3 Code are in [docs/deve
 
 ## Not yet supported
 
-Plan follow-ups, forking threads, reviewing or commenting on diffs, rewinding messages with attachments, project settings and guest sharing. Use the T3 Code app for those.
+Reviewing or commenting on pull request diffs, and the project settings editor. Use the T3 Code app for those.
 
 ## Licence
 

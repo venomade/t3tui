@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { OrchestrationV2Command, ThreadId, type OrchestrationV2ShellSnapshot, type OrchestrationV2ThreadShell, type ServerConfig } from "@t3tools/contracts";
+import { OrchestrationV2Command, RunId, ThreadId, type OrchestrationProjectShell, type OrchestrationV2ShellSnapshot, type OrchestrationV2ThreadShell, type ServerConfig } from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Schema from "effect/Schema";
 
@@ -99,6 +99,7 @@ describe("thread menu", () => {
     await session.reorderThread(id, "pinned", "m");
     await session.reorderThread(id, "active", "t");
     await session.deleteThread(id, false);
+    await session.forkThread({ sourceThreadId: id, runId: RunId.make("run-1"), title: "Thread fork" });
     expect(sent.filter((command) => !Schema.is(OrchestrationV2Command)(command))).toEqual([]);
     expect(sent.map((command) => (command as { type: string }).type)).toEqual([
       "thread.settle",
@@ -116,6 +117,21 @@ describe("thread menu", () => {
       "thread.pin.reorder",
       "thread.active.reorder",
       "thread.delete",
+      "thread.fork",
     ]);
+  });
+
+  test("guest sharing shows only when the server's Labs beta is on", () => {
+    const guestConfig = { ...config, settings: { guestSharingEnabled: true } } as unknown as ServerConfig;
+    expect(ids(threadMenu({ thread, config: guestConfig, timestampFormat: "24-hour" }).items)).toContain("share-guest");
+    expect(ids(threadMenu({ thread, config, timestampFormat: "24-hour" }).items)).not.toContain("share-guest");
+  });
+
+  test("a scratch thread with its own folder can turn into a project when the server allows it", () => {
+    const scratch = { ...thread, worktreePath: "/tmp/scratch" } as unknown as OrchestrationV2ThreadShell;
+    const capConfig = { ...config, scratchWorkspaceRoot: "/tmp/scratch", environment: { environmentId: "env-1", capabilities: { threadProjectFromScratch: true } } } as unknown as ServerConfig;
+    const projects = [{ id: "p1", workspaceRoot: "/tmp/scratch" }] as unknown as OrchestrationProjectShell[];
+    expect(ids(threadMenu({ thread: scratch, config: capConfig, timestampFormat: "24-hour", projects }).items)).toContain("turn-into-project");
+    expect(ids(threadMenu({ thread, config, timestampFormat: "24-hour", projects }).items)).not.toContain("turn-into-project");
   });
 });

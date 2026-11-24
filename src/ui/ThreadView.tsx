@@ -8,7 +8,8 @@ import { findThreadSearchOccurrences } from "@t3tools/shared/threadSearch";
 import type { OrchestrationV2SearchThreadResult } from "@t3tools/contracts";
 import { FindText } from "./FindText.tsx";
 import { isLeftClick, isRightClick, useHover } from "./Button.tsx";
-import { checkpointFileTotals, type ThreadCheckpointSummary } from "@t3tools/client-runtime/state/thread-checkpoints";
+import type { ThreadCheckpointSummary } from "@t3tools/client-runtime/state/thread-checkpoints";
+import { checkpointFileTotals } from "../model/turns.ts";
 import { formatDuration } from "@t3tools/shared/orchestrationTiming";
 import type { T3tuiConfig } from "../config.ts";
 
@@ -79,6 +80,7 @@ export function ThreadView(props: {
           <Row
             key={row.id}
             row={row}
+            turnDiffSummaries={timeline?.turnDiffSummaries ?? []}
             selected={row.kind === "message" && row.message.id === props.selectedMessageId}
             session={props.session}
             streamCommandOutput={props.streamCommandOutput}
@@ -150,6 +152,7 @@ function Divider({ label, color, onPress }: { readonly label: string; readonly c
  */
 const Row = memo(function Row(props: {
   readonly row: MessagesTimelineRow;
+  readonly turnDiffSummaries: readonly ThreadCheckpointSummary[];
   readonly selected: boolean;
   readonly session: T3Session;
   readonly streamCommandOutput: boolean;
@@ -171,7 +174,7 @@ const Row = memo(function Row(props: {
         const segments = findTextSegments(message.text, message.role === "user");
         if (segments.some((segment) => findThreadSearchOccurrences(segment, props.findQuery).length > 0)) return <FindText segments={segments} query={props.findQuery} activeOccurrence={props.activeOccurrence} scrollRef={props.scrollRef} />;
       }
-      const summary = row.assistantTurnDiffSummary;
+      const summary = props.turnDiffSummaries.findLast((candidate) => candidate.assistantMessageId === message.id);
       const menu = { kind: "message", messageId: message.id, role: message.role, text: message.text, ...(summary && summary.files.length > 0 ? { checkpointTurnCount: summary.checkpointTurnCount } : {}) } as const;
       if (message.role === "user") return <UserMessage session={props.session} text={message.text} attachments={message.attachments ?? []} messageId={message.id} selected={props.selected} onSelect={() => mouse.selectTurn(message.id)} onMenu={() => mouse.menu(menu)} />;
       if (message.role === "system") return <text marginTop={1} fg={colors.muted} onMouseDown={(event: MouseEvent) => isRightClick(event) && mouse.menu(menu)}>{message.text}</text>;
