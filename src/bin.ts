@@ -199,7 +199,7 @@ async function runUi(attachNeedle?: string) {
     const mode = themeModeOf(detected) ?? renderer.themeMode ?? "dark";
     applyTheme(config.theme === "terminal" ? (terminalPalette(detected) ?? mode) : mode);
   }
-  createRoot(renderer).render(createElement(App, { session, config, layout, ...(attachThreadId ? { attachThreadId } : {}) }));
+  createRoot(renderer).render(createElement(App, { session, config, layout, ownsServer: server !== null, ...(attachThreadId ? { attachThreadId } : {}) }));
 }
 
 function fail(message: string): never {

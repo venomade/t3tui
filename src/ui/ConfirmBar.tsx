@@ -10,6 +10,8 @@ export interface Confirmation {
   readonly message?: { readonly placeholder: string };
   readonly confirmLabel: string;
   readonly run: (message: string) => void;
+  /** When set, the bar answers y/n with no enter needed (the quit prompt). */
+  readonly yn?: boolean;
 }
 
 /** Shown above the composer while a confirmation is open. */
@@ -28,8 +30,8 @@ export function ConfirmBar(props: { readonly confirmation: Confirmation; readonl
         </box>
       ) : null}
       <Buttons>
-        <Button label={confirmation.confirmLabel} shortcut="enter" color={colors.warn} onPress={props.onSubmit} />
-        <Button label="cancel" shortcut="esc" onPress={props.onCancel} />
+        <Button label={confirmation.confirmLabel} shortcut={confirmation.yn ? "y" : "enter"} color={colors.warn} onPress={props.onSubmit} />
+        <Button label="cancel" shortcut={confirmation.yn ? "n" : "esc"} onPress={props.onCancel} />
       </Buttons>
     </box>
   );

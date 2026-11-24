@@ -535,3 +535,57 @@ describe("mouse", () => {
     expect((await loadLayout()).detailsWidth).toBeNull();
   });
 });
+
+describe("quitting", () => {
+  test("q asks before quitting; n keeps the app open", async () => {
+    const app = await open();
+    await app.press("q");
+    expect(app.frame()).toContain("Quit t3tui?");
+    // A server t3tui didn't start keeps running, so work on it survives the quit.
+    expect(app.frame()).toContain("Running work keeps going on the server");
+    expect(app.hints()).toBe("y yes · n no");
+    expect(app.calls("stop")).toHaveLength(0);
+    await app.press("n");
+    expect(app.frame()).not.toContain("Quit t3tui?");
+    expect(app.hints()).toStartWith("j/k threads");
+    expect(app.calls("stop")).toHaveLength(0);
+  });
+
+  test("when t3tui spawned the server itself, the prompt says quitting stops it", async () => {
+    const app = await open({ ownsServer: true });
+    await app.press("q");
+    expect(app.frame()).toContain("Quit t3tui?");
+    expect(app.frame()).toContain("stops the `t3 serve` process t3tui started");
+    await app.press("n");
+    expect(app.frame()).not.toContain("Quit t3tui?");
+  });
+
+  test("ctrl+c asks the same way; esc cancels", async () => {
+    const app = await open();
+    await app.press("c", { ctrl: true });
+    expect(app.frame()).toContain("Quit t3tui?");
+    expect(app.hints()).toBe("y yes · n no");
+    await app.press("escape");
+    expect(app.frame()).not.toContain("Quit t3tui?");
+    expect(app.hints()).toStartWith("j/k threads");
+    expect(app.calls("stop")).toHaveLength(0);
+  });
+
+  test("y at the prompt quits: the session stops and the process exits 0", async () => {
+    const app = await open();
+    const exit = process.exit;
+    let exitCode: number | undefined;
+    process.exit = ((code?: number) => {
+      exitCode = code ?? 0;
+    }) as typeof process.exit;
+    try {
+      await app.press("q");
+      await app.press("y");
+      await app.settle(300);
+      expect(app.calls("stop")).toHaveLength(1);
+      expect(exitCode).toBe(0);
+    } finally {
+      process.exit = exit;
+    }
+  });
+});

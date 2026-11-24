@@ -122,7 +122,7 @@ const COMPOSER_KEYS = {
 /** The composer's key while a new thread is being drafted. */
 const DRAFT_KEY = "draft";
 
-export function App(props: { readonly session: T3Session; readonly config: T3tuiConfig; readonly layout?: Layout; readonly attachThreadId?: ThreadId; readonly clipboard?: Clipboard }) {
+export function App(props: { readonly session: T3Session; readonly config: T3tuiConfig; readonly layout?: Layout; readonly attachThreadId?: ThreadId; readonly clipboard?: Clipboard; /** True when t3tui spawned `t3 serve` itself; quitting then stops that server too. */ readonly ownsServer?: boolean }) {
   const { session, attachThreadId } = props;
   const attached = attachThreadId !== undefined;
   const renderer = useRenderer();
@@ -807,6 +807,19 @@ export function App(props: { readonly session: T3Session; readonly config: T3tui
     });
   };
 
+  // Quitting always asks first: ctrl+c and q open this prompt, and only y exits.
+  const requestQuit = () => {
+    confirm({
+      title: "Quit t3tui?",
+      detail: props.ownsServer
+        ? "This also stops the `t3 serve` process t3tui started, ending any work running on it."
+        : "Running work keeps going on the server; this only closes the client.",
+      confirmLabel: "quit",
+      yn: true,
+      run: () => quit(),
+    });
+  };
+
   const scrollPage = (direction: 1 | -1) => scrollRef.current?.scrollBy(direction * Math.max(1, height - 10));
 
   const turns = useTurns({ session, threadId, projection, timeline: current, config: providerConfig, cwd: panel.cwd, ignoreWhitespace: config.diffIgnoreWhitespace, enabled: draft === null, diff, setDiff, scrollRef, confirm, say,
@@ -902,7 +915,7 @@ export function App(props: { readonly session: T3Session; readonly config: T3tui
     if (hasComposer) setMode("input");
   };
   // Keys that work wherever there's no line input to type into.
-  const quitKey: Binding = { keys: ["ctrl+c"], run: quit };
+  const quitKey: Binding = { keys: ["ctrl+c"], run: requestQuit };
   const paletteKey: Binding = { keys: ["ctrl+k"], run: openPalette };
   const terminalKey: Binding = {
     keys: ["ctrl+j"],
@@ -971,7 +984,7 @@ export function App(props: { readonly session: T3Session; readonly config: T3tui
     detailsKey,
     parent && { keys: ["u"], run: () => openThread(parent.threadId), hint: "parent", command: { id: "parent", title: `Go to parent: ${parent.title}` } },
     hinted(paletteKey, "commands"),
-    { keys: ["q"], run: quit, hint: "quit", command: { id: "quit", title: "Quit t3tui", keywords: ["exit"] } },
+    { keys: ["q"], run: requestQuit, hint: "quit", command: { id: "quit", title: "Quit t3tui", keywords: ["exit"] } },
     panel.keys.toggle,
     { keys: ["e"], run: () => setExpandAll((value) => !value), command: { id: "expand", title: expandAll ? "Collapse work" : "Expand all work", keywords: ["fold", "tool calls"] } },
     thread?.history.hasMore && { keys: ["o"], run: loadEarlier, command: { id: "earlier", title: "Load earlier turns", keywords: ["history", "older"] } },
@@ -1093,7 +1106,14 @@ export function App(props: { readonly session: T3Session; readonly config: T3tui
       }
       case "confirm": {
         // Without a message box, enter confirms here; with one, the box's submit does.
-        const confirmKeys = [confirmation?.message ? { keys: [], label: "enter", hint: "confirm" } : { keys: ["enter"], run: confirmNow, hint: "confirm" }, { keys: ["esc"], run: closeOverlay, hint: "cancel" }, quitKey];
+        // A y/n prompt (quitting) answers y/n directly, and ctrl+c there just cancels it.
+        const ynPrompt = confirmation?.yn === true;
+        const confirmKeys = [
+          ...(ynPrompt ? [{ keys: ["y"], run: confirmNow, hint: "yes" }, { keys: ["n"], run: closeOverlay, hint: "no" }] : []),
+          confirmation?.message ? { keys: [], label: "enter", hint: "confirm" } : { keys: ["enter"], run: confirmNow, ...(ynPrompt ? {} : { hint: "confirm" }) },
+          { keys: ["esc"], run: closeOverlay, ...(ynPrompt ? {} : { hint: "cancel" }) },
+          ynPrompt ? { keys: ["ctrl+c"], run: closeOverlay } : quitKey,
+        ];
         return { layers: [confirmKeys], hints: confirmKeys };
       }
     }

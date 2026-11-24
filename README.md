@@ -79,7 +79,7 @@ The keys you'll use most:
 | `d` | show or hide the right-hand column: details, the workspace's files, a tab per open editor or preview, and terminals placed at the side |
 | `F` | browse the workspace's files: `/` searches, `enter` opens, `p` previews, `m` mentions it in the message |
 | `ctrl+v` | in the message box: attach the clipboard's image (or paste its text) |
-| `ctrl+c` | quit |
+| `ctrl+c` / `q` | quit — asks `y`/`n` first |
 
 In the message box, `/`, `$`, `@` and `#` suggest commands, skills, files and threads, and pull requests. Most things also work with the mouse.
 

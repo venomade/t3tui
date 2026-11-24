@@ -113,6 +113,8 @@ export async function renderApp(
     readonly height?: number;
     /** What the clipboard holds; copies to it are recorded as "copy" calls. */
     readonly clipboard?: { readonly image?: ClipboardImage; readonly text?: string };
+    /** True when the app spawned `t3 serve` itself, so quitting stops the server too. */
+    readonly ownsServer?: boolean;
   } = {},
 ) {
   const fake = options.session ?? fakeSession();
@@ -125,7 +127,9 @@ export async function renderApp(
       return true;
     },
   };
-  const rig = await testRender(<App session={fake.session} config={config} clipboard={clipboard} {...(options.layout ? { layout: options.layout } : {})} />, { width: options.width ?? 140, height: options.height ?? 40 });
+  // exitOnCtrlC false as in bin.ts: the app owns ctrl+c (it asks before quitting), so the
+  // renderer must not tear itself down on it.
+  const rig = await testRender(<App session={fake.session} config={config} clipboard={clipboard} {...(options.ownsServer !== undefined ? { ownsServer: options.ownsServer } : {})} {...(options.layout ? { layout: options.layout } : {})} />, { width: options.width ?? 140, height: options.height ?? 40, exitOnCtrlC: false });
   // The app runs on timers and subscriptions, as it does live: tests wait for frames rather than wrap each update in act().
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false;
   const keys = createMockKeys(rig.renderer);
@@ -135,14 +139,19 @@ export async function renderApp(
    */
   const settle = async (ms = 20) => {
     await new Promise((resolve) => setTimeout(resolve, ms));
-    await rig.renderOnce();
-    let last = rig.captureCharFrame();
-    for (let tries = 0; tries < 50; tries++) {
-      await new Promise((resolve) => setTimeout(resolve, 15));
+    // Once the app quits it destroys the renderer; rendering and captures fail after that.
+    try {
       await rig.renderOnce();
-      const next = rig.captureCharFrame();
-      if (next === last) return;
-      last = next;
+      let last = rig.captureCharFrame();
+      for (let tries = 0; tries < 50; tries++) {
+        await new Promise((resolve) => setTimeout(resolve, 15));
+        await rig.renderOnce();
+        const next = rig.captureCharFrame();
+        if (next === last) return;
+        last = next;
+      }
+    } catch {
+      return;
     }
   };
   await settle(150);
@@ -179,6 +188,12 @@ export async function renderApp(
     throw new Error(`"${text}" is not on screen:\n${frame()}`);
   };
   const calls = (method: string) => fake.calls.filter((call) => call.method === method);
-  const destroy = () => rig.renderer.destroy();
+  const destroy = () => {
+    try {
+      rig.renderer.destroy();
+    } catch {
+      // Already destroyed by the app quitting.
+    }
+  };
   return { ...rig, session: fake.session, press, type, paste, click, settle, frame, hints, find, calls, destroy };
 }

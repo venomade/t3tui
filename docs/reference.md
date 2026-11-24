@@ -32,7 +32,7 @@ Any mode:
 | `ctrl+\` | the panes' prefix, then one key: `ctrl+\` moves the keys between the conversation and the last pane, `tab` / `shift+tab` to the next / previous pane, `j` the drawer, `l` the column, `k` or `h` the conversation; `1`–`9` pick a tab, `x` closes one, `z` zooms, `n` opens a terminal (see [Panes](#panes)) |
 | `ctrl+n` / `ctrl+p` (or `alt+↓`/`alt+↑`) | next / previous thread |
 | `pgup`/`pgdn`, `ctrl+u`/`ctrl+d` | scroll the conversation (`ctrl+u`/`ctrl+d` only in navigation; while typing they edit the text) |
-| `ctrl+c` | quit |
+| `ctrl+c` | quit — asks `y`/`n` first |
 
 Navigation:
 
@@ -70,7 +70,7 @@ Navigation:
 | `/` | filter threads by title or project (the box opens at the top of the thread list) |
 | `S` | stop the thread |
 | `g` / `G` | top / bottom of the conversation |
-| `esc` / `q` | close the diff or cancel a new thread; otherwise `q` quits |
+| `esc` / `q` | close the diff or cancel a new thread; otherwise `q` quits (after asking `y`/`n`) |
 
 ## The message box
 
