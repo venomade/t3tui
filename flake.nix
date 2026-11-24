@@ -61,7 +61,7 @@
             runHook preInstall
             mkdir -p $out/lib $out/bin
             cp -r . $out/lib/t3
-            ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''
+            ${pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isLinux ''
               libPath="${pkgs.lib.makeLibraryPath [
                 pkgs.stdenv.cc.cc.lib
                 pkgs.zlib

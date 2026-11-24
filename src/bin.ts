@@ -2,6 +2,7 @@
 import type { OrchestrationV2ShellSnapshot, ThreadId } from "@t3tools/contracts";
 
 import { migrateConfigDir } from "./client/auth.ts";
+import { ensureLocalServer } from "./client/spawnServer.ts";
 import { T3Session } from "./client/session.ts";
 import { isCompiled, removeOldBinaries, upgrade, VERSION } from "./upgrade.ts";
 import { findThread, lastActivity, relativeTime, rowTime, shortId, statusLabel, threadRows } from "./model/threads.ts";
@@ -20,7 +21,10 @@ usage:
 
 env:
   T3TUI_SERVER  server origin (default: the local server from ~/.t3)
-  T3TUI_TOKEN   bearer token for a remote server (local servers mint one via \`t3\`)`;
+  T3TUI_TOKEN   bearer token for a remote server (local servers mint one via \`t3\`)
+  T3TUI_T3_BIN  the \`t3\` binary to run \`t3 serve\` with when no local server is up
+
+with no local server running, t3tui starts \`t3 serve\` itself and stops it on quit;`
 
 async function main(argv: string[]) {
   migrateConfigDir();
@@ -76,21 +80,28 @@ async function connectedSession(): Promise<{ session: T3Session; snapshot: Orche
 }
 
 async function list(json: boolean) {
-  const { session, snapshot } = await connectedSession();
-  const rows = threadRows(snapshot, { settledLimit: 20 });
-  if (json) {
-    console.log(JSON.stringify(rows.map((row) => ({ id: row.thread.id, title: row.thread.title, project: row.projectName, section: row.section, status: row.status, unread: row.unread, updatedAt: new Date(lastActivity(row.thread)).toISOString() })), null, 2));
-  } else {
-    for (const row of rows) {
-      const status = statusLabel(row)?.text ?? relativeTime(rowTime(row.thread));
-      console.log(`${shortId(row.thread.id)}  ${row.section.padEnd(8)}  ${status.padEnd(12)}  ${row.projectName.padEnd(20).slice(0, 20)}  ${row.thread.title}`);
+  const server = await ensureLocalServer();
+  try {
+    const { session, snapshot } = await connectedSession();
+    const rows = threadRows(snapshot, { settledLimit: 20 });
+    if (json) {
+      console.log(JSON.stringify(rows.map((row) => ({ id: row.thread.id, title: row.thread.title, project: row.projectName, section: row.section, status: row.status, unread: row.unread, updatedAt: new Date(lastActivity(row.thread)).toISOString() })), null, 2));
+    } else {
+      for (const row of rows) {
+        const status = statusLabel(row)?.text ?? relativeTime(rowTime(row.thread));
+        console.log(`${shortId(row.thread.id)}  ${row.section.padEnd(8)}  ${status.padEnd(12)}  ${row.projectName.padEnd(20).slice(0, 20)}  ${row.thread.title}`);
+      }
     }
+    await session.stop();
+  } finally {
+    await server?.stop();
   }
-  await session.stop();
 }
 
 async function tmuxCommand(args: string[]) {
   if (process.platform === "win32") return fail("t3tui tmux needs tmux, which doesn't run on Windows. Run it inside WSL instead.");
+  const server = await ensureLocalServer();
+  try {
   const { syncTmux } = await import("./mux/tmux.ts");
   const sessionFlag = args.indexOf("--session");
   const name = sessionFlag >= 0 ? args[sessionFlag + 1] : "t3tui";
@@ -129,9 +140,14 @@ async function tmuxCommand(args: string[]) {
   // A dropped connection retries by itself; sync runs again once the shell is back.
   session.onShell(() => void sync());
   await new Promise(() => {});
+  } finally {
+    await server?.stop();
+  }
 }
 
 async function runUi(attachNeedle?: string) {
+  // No server socket answering: start `t3 serve` ourselves and stop it on quit.
+  const server = await ensureLocalServer();
   let session: T3Session;
   let attachThreadId: ThreadId | undefined;
   if (!attachNeedle) {
@@ -164,7 +180,7 @@ async function runUi(attachNeedle?: string) {
   // session's socket would keep a closed terminal's t3tui running for good.
   // The terminal is restored once `closed` settles, after the destroy event.
   renderer.once("destroy", () => {
-    void Promise.allSettled([Promise.race([session.stop(), Bun.sleep(1000)]), renderer.closed]).finally(() => process.exit(0));
+    void Promise.allSettled([Promise.race([session.stop(), Bun.sleep(1000)]), Promise.race([server?.stop() ?? Promise.resolve(), Bun.sleep(2000)]), renderer.closed]).finally(() => process.exit(0));
   });
   // Bun collects so lazily that a streaming thread takes t3tui past 500 MB of garbage. A full
   // collection pauses for up to ~150 ms, so it waits for a few seconds without keys or clicks.
