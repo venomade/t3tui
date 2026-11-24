@@ -3,6 +3,7 @@
 Everything t3tui does, by area. Most of it is also in the command palette (`ctrl+k`), which lists every action and its key.
 
 - [Modes](#modes)
+- [Connecting](#connecting)
 - [Keys](#keys)
 - [The message box](#the-message-box)
 - [The screen](#the-screen)
@@ -20,6 +21,12 @@ Everything t3tui does, by area. Most of it is also in the command palette (`ctrl
 ## Modes
 
 The message box is always at the bottom. t3tui has two modes: **typing**, where keys go to the message box, and **navigation**, where single keys act. `esc` switches to navigation; `i`, `enter` or `tab` switch back. Drafts are kept per thread.
+
+## Connecting
+
+t3tui is a companion to T3 Code: it needs a T3 Code server to talk to. It finds the local server from `~/.t3/userdata/server-runtime.json` (override with `T3TUI_SERVER`, or pass a bearer token for a remote server in `T3TUI_TOKEN`), and on first run mints itself a scoped session with `t3 auth session issue`, stored in `~/.config/t3tui/credentials.json`. If no local server answers, t3tui runs `t3 serve` itself — the `t3` CLI found via `T3TUI_T3_BIN`, `~/.t3/bin/t3` or `PATH` — and stops that server again on quit; its output goes to `~/.config/t3tui/server.log`.
+
+If no T3 Code setup is detected at all (no runtime file, nothing in the t3 home, no `t3` CLI, no `T3TUI_SERVER`/`T3TUI_TOKEN`), the conversation shows a notice instead: t3tui is a companion app to T3 Code, so install and set up [T3 Code](https://github.com/pingdotgg/t3code) first and make sure its server is running, and attach your agent ACPs (providers) in the T3 Code app. The header still shows the retry note, and `t3tui list` / `attach` / `tmux` print the same message. Set up T3 Code while t3tui runs and the notice clears once the connection goes live.
 
 ## Keys
 
@@ -165,7 +172,7 @@ Limits: GIF, JPEG, PNG and WebP images up to 10 MB each and 80 MB in all, other 
 
 Each of the thread's terminals has a tab at the top of the drawer: click one, or press `ctrl+\` then its number, to switch; `+ new` (or `ctrl+\ n`) starts another. A terminal that closes or exits takes its tab away, and the last one the drawer. Each thread keeps its own drawer, so another thread shows its own terminals, and `ctrl+j` brings back the one you last had. While the drawer is hidden, a strip under the message box names the terminals you opened this run, `▸ Terminal 1 · Terminal 2   ctrl+j`; click one to bring it back.
 
-While the drawer has focus, every key goes to its program, `esc` included, apart from `ctrl+\` (see [Panes](#panes)) and `ctrl+j`, which hides the drawer. The terminal follows the drawer's size, and so does the terminal on the server: its size is shared, so it resizes for anyone else watching. `Terminal: hide` in the palette detaches without stopping it.
+While the drawer has focus, every key goes to its program, `esc` included, apart from `ctrl+\` (see [Panes](#panes)) and `ctrl+j`, which hides the drawer. The terminal follows the drawer's size, and so does the terminal on the server: its size is shared, so it resizes for anyone else watching. `Terminal: hide` in the palette detaches without stopping it. On Windows the server-side terminal runs in a ConPTY pane, so full-screen programs draw properly.
 
 `Pane: move terminal to the side` in the palette puts terminals in the right-hand column instead, each a tab in the column's one strip: `Details · <editors> · Terminal 1 · Terminal 2 · + new`. `Pane: move terminal below` puts them back. The choice is kept for the next run. A narrow column cuts long tab names to fit; drag its edge to widen it.
 

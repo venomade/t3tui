@@ -6,9 +6,11 @@
 
 Set `T3TUI_DEBUG=/path/to/log` to log thread subscriptions and snapshots.
 
+The [Test workflow](../.github/workflows/test.yml) typechecks, lints and runs the suite on every push (run it by hand to check without pushing); locally that's `bun run typecheck && bun run lint && bun test`.
+
 ## How it connects
 
-- It finds the local server from `~/.t3/userdata/server-runtime.json` (override with `T3TUI_SERVER`).
+- It finds the local server from `~/.t3/userdata/server-runtime.json` (override with `T3TUI_SERVER`). If that file is missing and `detectT3CodeSetup()` (in `src/client/auth.ts`) finds nothing of a T3 Code setup either — no t3 home files, no `t3` CLI, no `T3TUI_SERVER`/`T3TUI_TOKEN` — the error and the dashboard notice (`src/ui/SetupNotice.tsx`) say t3tui is a companion app and T3 Code must be set up first, linking to github.com/pingdotgg/t3code.
 - On first run it mints its own bearer session with `t3 auth session issue --label t3tui`, scoped to `orchestration:read`, `orchestration:operate` (attachments and automations ride on it), `filesystem:read` (diffs), `source-control:write` (git actions), `terminal:read` and `terminal:operate` (terminals, stopping servers), `diagnostics:read` (usage totals) and `providers:manage` (reset credits), and stores it in `~/.config/t3tui/credentials.json` (mode 600). A stored credential missing any of these scopes is replaced with a new one. Revoke it any time with `t3 auth session revoke`. For a remote server, pass a token in `T3TUI_TOKEN`.
 - It speaks T3 Code's own WebSocket RPC protocol, typed by upstream's `@t3tools/contracts`, and applies thread updates with upstream's own reducers. Both come from `vendor/t3code`, a submodule pinned to the server version this was built against (commit `42c9107983`, v0.1.12-nightly).
 
@@ -39,6 +41,6 @@ Releases are standalone binaries built with `bun build --compile`, so users don'
 git tag v0.1.0 && git push origin v0.1.0
 ```
 
-The [Release workflow](../.github/workflows/release.yml) compiles linux-x64, linux-arm64, darwin-x64, darwin-arm64 and windows-x64 on one machine, opens each binary's dashboard on its own OS (on Windows it only runs `t3tui version`), and publishes them gzipped with a `SHA256SUMS` file, which `t3tui upgrade` checks. Run the workflow by hand to build and check the binaries without releasing.
+The [Release workflow](../.github/workflows/release.yml) compiles linux-x64, linux-arm64, linux-x64-musl, linux-arm64-musl, darwin-x64, darwin-arm64 and windows-x64 on one machine, smoke-runs each on its own OS (the linux and musl targets on ubuntu runners; the dashboard draw check on macOS; on Windows it only runs `t3tui version`), and publishes them gzipped with a `SHA256SUMS` file to the releases of github.com/venomade/t3tui, which `t3tui upgrade` checks: it pulls `/releases/latest` (never a prerelease), verifies the asset against `SHA256SUMS`, and picks the `-musl` asset on musl systems. Run the workflow by hand to build and check the binaries without releasing.
 
 To build a binary locally, run `bun run compile` (this machine) or name targets, e.g. `bun run compile darwin-arm64`. Other platforms' targets need their OpenTUI packages: `bun install --os='*' --cpu='*'`. Binaries go in `release/`. Linux targets also build as `-musl` variants (`linux-x64-musl`, `linux-arm64-musl`), which run on musl systems (Alpine, containers) — note they still need `libstdc++` there, and the glibc build only runs on glibc hosts. The release workflow builds on ubuntu with the official bun, whose embedded runtime has the standard `/lib64/ld-linux-x86-64.so.2` interpreter; building with a nix bun instead embeds the nix-store loader, so such binaries only run on the same nix machine — use the official bun (or patchelf the interpreter) for portable local builds.
