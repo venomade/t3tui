@@ -22,7 +22,7 @@ Or with nix — this repo is a flake that builds the binary itself (`packages.<s
 
 ```nix
 {
-  inputs.t3tui.url = "git+ssh://git@git.venomade.com/venomade/t3tui"; # or the GitHub mirror
+  inputs.t3tui.url = "git+https://git.venomade.com/venomade/t3tui.git"; # or the GitHub mirror
   # in home-manager: home.packages = [ inputs.t3tui.packages.${system}.t3tui inputs.t3tui.packages.${system}.t3 ];
 }
 ```
