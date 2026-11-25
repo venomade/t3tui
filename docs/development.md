@@ -12,7 +12,7 @@ The [Test workflow](../.github/workflows/test.yml) typechecks, lints and runs th
 
 - It finds the local server from `~/.t3/userdata/server-runtime.json` (override with `T3TUI_SERVER`). If that file is missing and `detectT3CodeSetup()` (in `src/client/auth.ts`) finds nothing of a T3 Code setup either — no t3 home files, no `t3` CLI, no `T3TUI_SERVER`/`T3TUI_TOKEN` — the error and the dashboard notice (`src/ui/SetupNotice.tsx`) say t3tui is a companion app and T3 Code must be set up first, linking to github.com/pingdotgg/t3code.
 - On first run it mints its own bearer session with `t3 auth session issue --label t3tui`, scoped to `orchestration:read`, `orchestration:operate` (attachments and automations ride on it), `filesystem:read` (diffs), `source-control:write` (git actions), `terminal:read` and `terminal:operate` (terminals, stopping servers), `diagnostics:read` (usage totals) and `providers:manage` (reset credits), and stores it in `~/.config/t3tui/credentials.json` (mode 600). A stored credential missing any of these scopes is replaced with a new one. Revoke it any time with `t3 auth session revoke`. For a remote server, pass a token in `T3TUI_TOKEN`.
-- It speaks T3 Code's own WebSocket RPC protocol, typed by upstream's `@t3tools/contracts`, and applies thread updates with upstream's own reducers. Both come from `vendor/t3code`, a submodule pinned to the server version this was built against (commit `42c9107983`, v0.1.12-nightly).
+- It speaks T3 Code's own WebSocket RPC protocol, typed by upstream's `@t3tools/contracts`, and applies thread updates with upstream's own reducers. Both come from `vendor/t3code`, a submodule pinned to the server version this was built against (commit `ca81b7b97a`, v0.1.12).
 
 ## Following the web app
 
