@@ -53,7 +53,7 @@
             ];
             outputHashMode = "recursive";
             outputHashAlgo = "sha256";
-            outputHash = "sha256-vaW3HXWIxDu9Iv34UJ63ri3oYsb4g6YFxjO6toF7uJQ=";
+            outputHash = "sha256-XbM+sU9RdtuDS0IX+6VNPPbKEEX+MA2O0jVzKJtWAFk=";
             dontFixup = true;
             dontConfigure = true;
             buildPhase = ''
