@@ -7,7 +7,7 @@
     # source of truth for local development; this input pins the same commit for flake
     # builds, where git submodule contents are not part of the fetched tree.
     t3code = {
-      url = "github:pingdotgg/t3code/ca81b7b97a1c4b91e5ac25768d0f6629f37732fd";
+      url = "github:pingdotgg/t3code/bc0f04da94f64b5e487c598761a43b4cf06b2ac9";
       flake = false;
     };
   };
